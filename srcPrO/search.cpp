@@ -72,10 +72,12 @@ namespace {
 
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[2][16];  // [improving][depth]
-  Depth Reductions[2][2][64][64]; // [pv][improving][depth][moveNumber]
+  Depth Reductions[2][2][2][64][64]; // [pv][improving][depth][moveNumber]
 
-  template <bool PvNode> Depth reduction(bool i, Depth d, int mn) {
-    return Reductions[PvNode][i][std::min(d, 63 * ONE_PLY)][std::min(mn, 63)];
+  int gpv = (KnightValueMg * 4 + BishopValueMg * 4);
+
+  template <bool PvNode> Depth reduction(bool i, bool gp, Depth d, int mn) {
+	  return Reductions[PvNode][i][gp][std::min(d, 63 * ONE_PLY)][std::min(mn, 63)];
   }
 
   // Skill struct is used to implement strength limiting
@@ -156,21 +158,25 @@ namespace {
 
 void Search::init() {
 
-  const double K[][2] = {{ 0.83, 2.25 }, { 0.50, 3.00 }};
-
+  const double mg[][2] = {{ 0.83, 2.25 }, { 0.50, 3.00 }};
+  
   for (int pv = 0; pv <= 1; ++pv)
+	  
       for (int imp = 0; imp <= 1; ++imp)
+		  for (int gp = 0; gp <= 1; ++gp)
           for (int d = 1; d < 64; ++d)
               for (int mc = 1; mc < 64; ++mc)
               {
-                  double r = K[pv][0] + log(d) * log(mc) / K[pv][1];
+                  double r = mg[pv][0] + log(d) * log(mc) / mg[pv][1];
+			if (gp & !pv)
+			r = 0.80 + log(d) * log(mc) / 2.00;
 
                   if (r >= 1.5)
-                      Reductions[pv][imp][d][mc] = int(r) * ONE_PLY;
+			Reductions[pv][imp][gp][d][mc] = int(r) * ONE_PLY;
 
                   // Increase reduction when eval is not improving
-                  if (!pv && !imp && Reductions[pv][imp][d][mc] >= 2 * ONE_PLY)
-                      Reductions[pv][imp][d][mc] += ONE_PLY;
+				  if (!pv && !imp && Reductions[pv][imp][gp][d][mc] >= 2 * ONE_PLY)
+					  Reductions[pv][imp][gp][d][mc] += ONE_PLY;
               }
 
   for (int d = 0; d < 16; ++d)
@@ -184,7 +190,6 @@ void Search::init() {
 /// Search::reset() clears all search memory, to obtain reproducible search results
 
 void Search::reset () {
-
   TT.clear();
   History.clear();
   CounterMovesHistory.clear();
@@ -364,6 +369,7 @@ namespace {
     beta = VALUE_INFINITE;
 
     TT.new_search();
+	
 
     size_t multiPV = Options["MultiPV"];
     Skill skill(Options["Handicap Level"]);
@@ -911,7 +917,7 @@ moves_loop: // When in check and at SpNode search starts from here
               continue;
           }
 
-          predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
+		  predictedDepth = newDepth - reduction<PvNode>(improving, (pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK))<=gpv, depth, moveCount);
 
           // Futility pruning: parent node
           if (predictedDepth < 7 * ONE_PLY)
@@ -965,7 +971,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  move != ss->killers[0]
           &&  move != ss->killers[1])
       {
-          ss->reduction = reduction<PvNode>(improving, depth, moveCount);
+		  ss->reduction = reduction<PvNode>(improving, (pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK)) <= gpv, depth, moveCount);
 
           if (   (!PvNode && cutNode)
               || (   History[pos.piece_on(to_sq(move))][to_sq(move)] < VALUE_ZERO
