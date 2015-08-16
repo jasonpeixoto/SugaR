@@ -174,7 +174,7 @@ namespace {
   const Score MinorBehindPawn    = S(16,  0);
   const Score TrappedRook        = S(92,  0);
   const Score Unstoppable        = S( 0, 20);
-  const Score Hanging            = S(31, 26);
+        Score Hanging            = S(31, 26);
   const Score PawnAttackThreat   = S(20, 20);
   const Score PawnSafePush       = S( 5,  5);
 
@@ -557,7 +557,7 @@ namespace {
 
         b = weak & ~ei.attackedBy[Them][ALL_PIECES];
         if (b)
-            score += Hanging * popcount<Max15>(b);
+            score += more_than_one(b) ? Hanging * popcount<Max15>(b) : Hanging;
 
         b = weak & ei.attackedBy[Us][KING];
         if (b)
@@ -909,6 +909,13 @@ namespace {
 
 
 namespace Eval {
+
+  // Init spsa params
+  void init_params() {
+	  
+    // Hanging
+    Hanging = make_score(int(Options["Hanging (Midgame)"]) , int(Options["Hanging (Endgame)"]));
+  }
 
   /// evaluate() is the main evaluation function. It returns a static evaluation
   /// of the position always from the point of view of the side to move.
