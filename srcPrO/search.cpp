@@ -68,7 +68,7 @@ namespace {
 
   // Razoring and futility margin based on depth
   Value razor_margin(Depth d) { return Value(512 + 32 * d); }
-  Value futility_margin(Depth d) { return Value(200 * d); }
+  Value futility_margin(Depth d) { return Value(185 * d); }
 
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[2][16];  // [improving][depth]
@@ -709,7 +709,7 @@ namespace {
 
     // Step 7. Futility pruning: child node (skipped when in check)
     if (   !RootNode
-        &&  depth < 7 * ONE_PLY
+        &&  depth <= 5 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -813,7 +813,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
     singularExtensionNode =   !RootNode
                            && !SpNode
-                           &&  depth >= 8 * ONE_PLY
+                           &&  depth >= 7 * ONE_PLY
                            &&  ttMove != MOVE_NONE
                        /*  &&  ttValue != VALUE_NONE Already implicit in the next condition */
                            &&  abs(ttValue) < VALUE_KNOWN_WIN
@@ -920,7 +920,7 @@ moves_loop: // When in check and at SpNode search starts from here
 		  predictedDepth = newDepth - reduction<PvNode>(improving, (pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK))<=gpv, depth, moveCount);
 
           // Futility pruning: parent node
-          if (predictedDepth < 7 * ONE_PLY)
+          if (predictedDepth <= 5 * ONE_PLY)
           {
               futilityValue = ss->staticEval + futility_margin(predictedDepth) + 256;
 
