@@ -124,7 +124,6 @@ Entry* probe(const Position& pos) {
   Key key = pos.material_key();
   Entry* e = pos.this_thread()->materialTable[key];
 
-
   if (e->key == key)
       return e;
 
@@ -136,7 +135,7 @@ Entry* probe(const Position& pos) {
   // Let's look if we have a specialized evaluation function for this particular
   // material configuration. Firstly we look for a fixed configuration one, then
   // for a generic one if the previous search failed.
-  if (pos.this_thread()->endgames.probe(key, &e->evaluationFunction))
+  if ((e->evaluationFunction = pos.this_thread()->endgames.probe<Value>(key)) != nullptr)
       return e;
 
   for (Color c = WHITE; c <= BLACK; ++c)
@@ -146,17 +145,15 @@ Entry* probe(const Position& pos) {
           return e;
       }
 
-
   // OK, we didn't find any special evaluation function for the current material
   // configuration. Is there a suitable specialized scaling function?
   EndgameBase<ScaleFactor>* sf;
 
-  if (pos.this_thread()->endgames.probe(key, &sf))
+  if ((sf = pos.this_thread()->endgames.probe<ScaleFactor>(key)) != nullptr)
   {
       e->scalingFunction[sf->strong_side()] = sf; // Only strong color assigned
       return e;
   }
-
 
   // We didn't find any specialized scaling function, so fall back on generic
   // ones that refer to more than one material distribution. Note that in this
@@ -197,7 +194,7 @@ Entry* probe(const Position& pos) {
   }
 
   // Zero or just one pawn makes it difficult to win, even with a small material
-  // // advantage. This catches some trivial draws like KK, KBK and KNK and gives a
+  // advantage. This catches some trivial draws like KK, KBK and KNK and gives a
   // drawish scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
   if (!pos.count<PAWN>(WHITE) && npm_w - npm_b <= BishopValueMg)
       e->factor[WHITE] = uint8_t(npm_w <  RookValueMg   ? SCALE_FACTOR_DRAW :
