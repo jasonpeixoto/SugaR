@@ -23,6 +23,7 @@
 #include "bitcount.h"
 #include "pawns.h"
 #include "position.h"
+#include "thread.h"
 
 namespace {
 
@@ -194,9 +195,9 @@ namespace {
 
 namespace Pawns {
 
-/// init() initializes some tables used by evaluation. Instead of hard-coded
-/// tables, when makes sense, we prefer to calculate them with a formula to
-/// reduce independent parameters and to allow easier tuning and better insight.
+/// Pawns::init() initializes some tables needed by evaluation. Instead of using
+/// hard-coded tables, when makes sense, we prefer to calculate them with a formula
+/// to reduce independent parameters and to allow easier tuning and better insight.
 
 void init()
 {
@@ -210,19 +211,19 @@ void init()
       int v = (Seed[r] + (phalanx ? (Seed[r + 1] - Seed[r]) / 2 : 0)) >> opposed;
       v += (apex ? v / 2 : 0);
       Connected[opposed][phalanx][apex][r] = make_score(3 * v / 2, v);
-
   }
 }
-/// probe() takes a position as input, computes a Entry object, and returns a
-/// pointer to it. The result is also stored in a hash table, so we don't have
-/// to recompute everything when the same pawn structure occurs again.
-
-Entry* probe(const Position& pos, Table& entries) {
 
 
+/// Pawns::probe() looks up the current position's pawns configuration in
+/// the pawns hash table. It returns a pointer to the Entry if the position
+/// is found. Otherwise a new Entry is computed and stored there, so we don't
+/// have to recompute all when the same pawns configuration occurs again.
+
+Entry* probe(const Position& pos) {
 
   Key key = pos.pawn_key();
-  Entry* e = entries[key];
+  Entry* e = pos.this_thread()->pawnsTable[key];
 
   if (e->key == key)
       return e;

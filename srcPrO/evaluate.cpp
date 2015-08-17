@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>   // For std::memset
 #include <iomanip>
 #include <sstream>
 
@@ -25,7 +26,6 @@
 #include "evaluate.h"
 #include "material.h"
 #include "pawns.h"
-#include "thread.h"
 #include "uci.h"
 
 namespace {
@@ -720,14 +720,13 @@ namespace {
     EvalInfo ei;
     Score score, mobility[2] = { SCORE_ZERO, SCORE_ZERO };
 
-    Thread* thisThread = pos.this_thread();
     // Initialize score by reading the incrementally updated scores included
     // in the position object (material + piece square tables) and adding a
     // Tempo bonus. Score is computed from the point of view of white.
     score = pos.psq_score() + (pos.side_to_move() == WHITE ? Tempo : -Tempo);
 
     // Probe the material hash table
-    ei.mi = Material::probe(pos, thisThread->materialTable, thisThread->endgames);
+    ei.mi = Material::probe(pos);
     score += ei.mi->imbalance();
 
     // If we have a specialized evaluation function for the current material
@@ -736,7 +735,7 @@ namespace {
         return ei.mi->evaluate(pos);
 
     // Probe the pawn hash table
-    ei.pi = Pawns::probe(pos, thisThread->pawnsTable);
+    ei.pi = Pawns::probe(pos);
     score += apply_weight(ei.pi->pawns_score(), Weights[PawnStructure]);
 
     // Initialize attack and king safety bitboards
