@@ -90,9 +90,8 @@ namespace {
 
 
   // Evaluation weights, initialized from UCI options
-  enum { Mobility, PawnStructure, PassedPawns, Space, KingDangerUs, KingDangerThem };
-  struct Weight { int mg, eg; } Weights[6];
-
+  enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
+  struct Weight { int mg, eg; } Weights[5];
 
 
 
@@ -106,9 +105,8 @@ namespace {
   //
   // Values modified by Joona Kiiski
   const Score WeightsInternal[] = {
-    S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0)
+    S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(322, 0)
   };
-
   // MobilityBonus[PieceType][attacked] contains bonuses for middle and end
   // game, indexed by piece type and number of attacked squares not occupied by
   // friendly pieces.
@@ -163,6 +161,7 @@ namespace {
   };
 
   const Score ThreatenedByHangingPawn = S(40, 60);
+
   // Assorted bonuses and penalties used by evaluation
   const Score KingOnOne          = S( 2, 58);
   const Score KingOnMany         = S( 6,125);
@@ -199,7 +198,8 @@ namespace {
   // in KingDanger[]. Various little "meta-bonuses" measuring the strength
   // of the enemy attack are added up into an integer, which is used as an
   // index to KingDanger[].
-  //
+  Score KingDanger[512];
+
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 7, 5, 4, 1 };
 
@@ -211,9 +211,9 @@ namespace {
   const int BishopCheck       = 6;
   const int KnightCheck       = 14;
 
-  // KingDanger[Color][attackUnits] contains the actual king danger weighted
-  // scores, indexed by color and by a calculated integer number.
-  Score KingDanger[COLOR_NB][512];
+  // KingDanger[attackUnits] contains the actual king danger weighted
+  // scores, indexed by a calculated integer number.
+
 
   // apply_weight() weighs score 's' by weight 'w' trying to prevent overflow
   Score apply_weight(Score s, const Weight& w) {
@@ -477,7 +477,7 @@ namespace {
 
         // Finally, extract the king danger score from the KingDanger[]
         // array and subtract the score from evaluation.
-        score -= KingDanger[Us == Search::RootColor][attackUnits];
+        score -= KingDanger[attackUnits];
     }
 
     if (Trace)
@@ -725,6 +725,7 @@ namespace {
     // in the position object (material + piece square tables) and adding a
     // Tempo bonus. Score is computed from the point of view of white.
     score = pos.psq_score() + (pos.side_to_move() == WHITE ? Tempo : -Tempo);
+
     // Probe the material hash table
     ei.mi = Material::probe(pos, thisThread->materialTable, thisThread->endgames);
     score += ei.mi->imbalance();
@@ -943,8 +944,7 @@ namespace Eval {
     Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
     Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
     Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
-    Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
-    Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
+    Weights[KingSafety]     = weight_option("King Safety", "King Safety", WeightsInternal[KingSafety]);
 
     const int MaxSlope = 8700;
     const int Peak = 1280000;
@@ -953,8 +953,7 @@ namespace Eval {
     for (int i = 0; i < 400; ++i)
     {
         t = std::min(Peak, std::min(i * i * 27, t + MaxSlope));
-        KingDanger[1][i] = apply_weight(make_score(t / 1000, 0), Weights[KingDangerUs]);
-        KingDanger[0][i] = apply_weight(make_score(t / 1000, 0), Weights[KingDangerThem]);
+        KingDanger[i] = apply_weight(make_score(t / 1000, 0), Weights[KingSafety]);
     }
   }
 

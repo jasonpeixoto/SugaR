@@ -1,5 +1,6 @@
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
+
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
   SugaR is free software: you can redistribute it and/or modify
@@ -41,7 +42,6 @@ namespace Search {
   LimitsType Limits;
   RootMoveVector RootMoves;
   Position RootPos;
-  Color RootColor;
   StateStackPtr SetupStates;
 }
 
@@ -190,6 +190,7 @@ void Search::init() {
 /// Search::reset() clears all search memory, to obtain reproducible search results
 
 void Search::reset () {
+
   TT.clear();
   History.clear();
   CounterMovesHistory.clear();
@@ -239,8 +240,8 @@ void Search::think() {
   Time.init(Limits, us, RootPos.game_ply(), now());
 
   int contempt = Options["Contempt"] * PawnValueEg / 100; // From centipawns
-  DrawValue[ RootColor] = VALUE_DRAW - Value(contempt);
-  DrawValue[~RootColor] = VALUE_DRAW + Value(contempt);
+  DrawValue[ us] = VALUE_DRAW - Value(contempt);
+  DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
   TB::Hits = 0;
   TB::RootInTB = false;
@@ -369,7 +370,6 @@ namespace {
     beta = VALUE_INFINITE;
 
     TT.new_search();
-	
 
     size_t multiPV = Options["MultiPV"];
     Skill skill(Options["Handicap Level"]);
@@ -1792,3 +1792,4 @@ void check_time() {
           Signals.stop = true;
   }
 }
+
