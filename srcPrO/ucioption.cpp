@@ -67,15 +67,14 @@ void init(OptionsMap& o) {
   o["Passed Pawns (Endgame)"]   << Option(100, 0, 200, on_eval);
   o["Space"]                    << Option(100, 0, 200, on_eval);
   o["King Safety"]              << Option(100, 0, 200, on_eval);
-  o["Book Name"]                << Option("<empty>.bin");
-  o["Best Book Line"]           << Option(false);
-
+  o["Book File"]                << Option("book.bin");
+  o["Best Book Move"]           << Option(false);
   o["Min Split Depth"]          << Option(5, 0, 12, on_threads);
   o["Threads"]                  << Option(1, 1, MAX_THREADS, on_threads);
-  o["HashTable Size"]           << Option(16, 1, MaxHashMB, on_hash_size);
+  o["Hash"]                     << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]               << Option(on_clear_hash);
   o["Ponder"]                   << Option(true);
-  o["PolyglotBook"]             << Option(false);
+  o["OwnBook"]                  << Option(false);
   o["MultiPV"]                  << Option(1, 1, 500);
   o["Handicap Level"]           << Option(20, 0, 20);
   o["Move Overhead"]            << Option(30, 0, 5000);

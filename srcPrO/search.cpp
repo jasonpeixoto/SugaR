@@ -265,9 +265,9 @@ void Search::think() {
   }
   else
   {
-      if (Options["PolyglotBook"] && !Limits.infinite && !Limits.mate)
+      if (Options["OwnBook"] && !Limits.infinite && !Limits.mate)
       {
-          Move bookMove = book.probe(RootPos, Options["Book Name"], Options["Best Book Line"]);
+          Move bookMove = book.probe(RootPos, Options["Book File"], Options["Best Book Move"]);
 
           if (bookMove && std::count(RootMoves.begin(), RootMoves.end(), bookMove))
           {
@@ -372,7 +372,7 @@ namespace {
     TT.new_search();
 
     size_t multiPV = Options["MultiPV"];
-    Skill skill(Options["Handicap Level"]);
+    Skill skill(Options["Skill Level"]);
 
     // When playing with strength handicap enable MultiPV search that we will
     // use behind the scenes to retrieve a set of possible moves.
