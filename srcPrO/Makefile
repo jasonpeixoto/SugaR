@@ -24,7 +24,7 @@
 UNAME = $(shell uname)
 
 ### Executable name
-EXE = stockfish
+EXE = SugaR
 
 ### Installation dir definitions
 PREFIX = /usr/local
@@ -328,7 +328,7 @@ endif
 
 help:
 	@echo ""
-	@echo "To compile stockfish, type: "
+	@echo "To compile SugaR, type: "
 	@echo ""
 	@echo "make target ARCH=arch [COMP=comp]"
 	@echo ""
