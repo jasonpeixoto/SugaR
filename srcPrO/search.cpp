@@ -905,9 +905,8 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
-          if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts
-			  [improving || pos.non_pawn_material(pos.side_to_move()) < RookValueMg][depth])
+          if (   depth < 16 * ONE_PLY && (!SpNode || depth > Threads.minimumSplitDepth)
+              && moveCount >= FutilityMoveCounts[improving][depth])
           {
               if (SpNode)
                   splitPoint->spinlock.acquire();
