@@ -905,7 +905,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
-          if (   depth < 16 * ONE_PLY && depth >= Threads.minimumSplitDepth - 1
+          if (   depth < 16 * ONE_PLY
               && moveCount >= FutilityMoveCounts[improving][depth])
           {
               if (SpNode)
@@ -1111,6 +1111,9 @@ moves_loop: // When in check and at SpNode search starts from here
       if (   !SpNode
           &&  Threads.size() >= 2
           &&  depth >= Threads.minimumSplitDepth
+          // test for preventing a split which will be pruned by Move count based pruning:
+		  // (ignore improving for now)
+          && !(   depth < 16 * ONE_PLY && moveCount >= FutilityMoveCounts[0][depth])
           &&  (   !thisThread->activeSplitPoint
                || !thisThread->activeSplitPoint->allSlavesSearching
                || (   Threads.size() > MAX_SLAVES_PER_SPLITPOINT
