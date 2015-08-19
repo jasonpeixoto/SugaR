@@ -905,7 +905,7 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
-          if (   depth < 16 * ONE_PLY && (!SpNode || depth > Threads.minimumSplitDepth)
+          if (   depth < 16 * ONE_PLY && (!SpNode || depth >= Threads.minimumSplitDepth - 1)
               && moveCount >= FutilityMoveCounts[improving][depth])
           {
               if (SpNode)
