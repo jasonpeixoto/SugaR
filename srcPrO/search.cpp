@@ -552,7 +552,7 @@ namespace {
     Depth extension, newDepth, predictedDepth;
     Value bestValue, value, ttValue, eval, nullValue, futilityValue;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
-    bool captureOrPromotion, doFullDepthSearch;
+    bool captureOrPromotion, dangerous, doFullDepthSearch;
     int moveCount, quietCount;
 
     // Step 1. Initialize node
@@ -868,6 +868,10 @@ moves_loop: // When in check and at SpNode search starts from here
                   ? ci.checkSquares[type_of(pos.piece_on(from_sq(move)))] & to_sq(move)
                   : pos.gives_check(move, ci);
 
+      dangerous =   givesCheck
+                 || type_of(move) != NORMAL
+                 || pos.advanced_pawn_push(move);
+
       // Step 12. Extend checks
       if (givesCheck && pos.see_sign(move) >= VALUE_ZERO)
           extension = ONE_PLY;
@@ -900,8 +904,7 @@ moves_loop: // When in check and at SpNode search starts from here
       if (   !RootNode
           && !captureOrPromotion
           && !inCheck
-          && !givesCheck
-		  && !pos.advanced_pawn_push(move)
+          && !dangerous
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
@@ -1111,8 +1114,6 @@ moves_loop: // When in check and at SpNode search starts from here
       if (   !SpNode
           &&  Threads.size() >= 2
           &&  depth >= Threads.minimumSplitDepth
-          // test for preventing a split which will be pruned by Move count based pruning:
-          && !(   depth < 16 * ONE_PLY && moveCount >= FutilityMoveCounts[improving][depth])
           &&  (   !thisThread->activeSplitPoint
                || !thisThread->activeSplitPoint->allSlavesSearching
                || (   Threads.size() > MAX_SLAVES_PER_SPLITPOINT
