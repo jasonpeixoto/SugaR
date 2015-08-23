@@ -27,6 +27,7 @@
 #include "tt.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
+#include "pawns.h"
 
 using std::string;
 
@@ -41,6 +42,7 @@ void on_logger(const Option& o) { start_logger(o); }
 void on_eval(const Option&) { Eval::init(); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
+void on_pawns(const Option&) { Pawns::init(); }
 
 
 /// Our case insensitive less() function as required by UCI protocol
@@ -86,6 +88,8 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]         << Option(1, 1, 100);
   o["Syzygy50MoveRule"]         << Option(true);
   o["SyzygyProbeLimit"]         << Option(6, 0, 6);
+  o["OpenCenterStormFactor"]    << Option(128, 0, 256, on_pawns);
+  o["ClosedCenterWeakFactor"]   << Option(128, 0, 256, on_pawns);
   // Hanging pieces
   o["Hanging (Midgame)"]        << Option(31, -10, 250);
   o["Hanging (Endgame)"]        << Option(26, -10, 250);
