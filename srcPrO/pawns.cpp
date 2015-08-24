@@ -56,6 +56,9 @@ namespace {
   // Unsupported pawn penalty
   const Score UnsupportedPawnPenalty = S(20, 10);
 
+  // En Passant bonus
+  const Score EnPassantBonus = S(11, 6);
+  
   // Weakness of our pawn shelter in front of the king by [distance from edge][rank]
   const Value ShelterWeakness[][RANK_NB] = {
   { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
@@ -99,7 +102,7 @@ namespace {
 
     Bitboard b, neighbours, doubled, supported, phalanx;
     Square s;
-    bool passed, isolated, opposed, backward, lever, connected;
+    bool passed, isolated, opposed, backward, lever, connected, enpassant;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
     const Bitboard* pawnAttacksBB = StepAttacksBB[make_piece(Us, PAWN)];
@@ -134,6 +137,7 @@ namespace {
         supported   =   neighbours & rank_bb(s - Up);
         connected   =   supported | phalanx;
         isolated    =  !neighbours;
+        enpassant   =   theirPawns & pawnAttacksBB[s + pawn_push(Us)] & (Rank2BB | Rank7BB);
 
         // Test for backward pawn.
         // If the pawn is passed, isolated, lever or connected it cannot be
@@ -183,6 +187,10 @@ namespace {
 
         if (lever)
             score += Lever[relative_rank(Us, s)];
+
+        if (enpassant && !backward)
+            score += EnPassantBonus;
+
     }
 
     b = e->semiopenFiles[Us] ^ 0xFF;
