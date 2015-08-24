@@ -24,7 +24,6 @@
 #include "pawns.h"
 #include "position.h"
 #include "thread.h"
-#include "uci.h"
 
 namespace {
 
@@ -56,23 +55,6 @@ namespace {
 
   // Unsupported pawn penalty
   const Score UnsupportedPawnPenalty = S(20, 10);
-
-  // Center bind bonus: Two pawns controlling the same central square
-  const Bitboard CenterBindMask[COLOR_NB] = {
-    (FileDBB | FileEBB) & (Rank5BB | Rank6BB | Rank7BB),
-    (FileDBB | FileEBB) & (Rank4BB | Rank3BB | Rank2BB)
-  };
-
-  const Score CenterBind = S(16, 0);
-
-  // Extended center for detecting 'board divided'
-  const Bitboard CenterColumnMask[COLOR_NB] = {
-    (FileDBB | FileEBB) & (Rank5BB | Rank4BB | Rank3BB),
-    (FileDBB | FileEBB) & (Rank4BB | Rank5BB | Rank6BB)
-  };
-
-  int closedCenterWeakFactor = 128;
-  int openCenterStormFactor    = 128;
 
   // Weakness of our pawn shelter in front of the king by [distance from edge][rank]
   const Value ShelterWeakness[][RANK_NB] = {
@@ -112,7 +94,6 @@ namespace {
 
     const Color  Them  = (Us == WHITE ? BLACK    : WHITE);
     const Square Up    = (Us == WHITE ? DELTA_N  : DELTA_S);
-    const Square Down  = (Us == WHITE ? DELTA_S  : DELTA_N);
     const Square Right = (Us == WHITE ? DELTA_NE : DELTA_SW);
     const Square Left  = (Us == WHITE ? DELTA_NW : DELTA_SE);
 
@@ -132,9 +113,6 @@ namespace {
     e->pawnAttacks[Us] = shift_bb<Right>(ourPawns) | shift_bb<Left>(ourPawns);
     e->pawnsOnSquares[Us][BLACK] = popcount<Max15>(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
-    e->pawnsInCenter[Us] = ourPawns & CenterColumnMask[Us];
-    e->pawnsBlockingCenter[Us] = more_than_one(ourPawns & shift_bb<Down>(theirPawns) & CenterColumnMask[Us]);
-
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -210,10 +188,6 @@ namespace {
     b = e->semiopenFiles[Us] ^ 0xFF;
     e->pawnSpan[Us] = b ? int(msb(b) - lsb(b)) : 0;
 
-    // Center binds: Two pawns controlling the same central square
-    b = shift_bb<Right>(ourPawns) & shift_bb<Left>(ourPawns) & CenterBindMask[Us];
-    score += popcount<Max15>(b) * CenterBind;
-
     return score;
   }
 
@@ -237,9 +211,7 @@ void init()
       int v = (Seed[r] + (phalanx ? (Seed[r + 1] - Seed[r]) / 2 : 0)) >> opposed;
       v += (apex ? v / 2 : 0);
       Connected[opposed][phalanx][apex][r] = make_score(3 * v / 2, v);
-          }
-  openCenterStormFactor = int(Options["OpenCenterStormFactor"]);
-  closedCenterWeakFactor = int(Options["ClosedCenterWeakFactor"]);
+  }
 }
 
 
@@ -277,11 +249,6 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
   Bitboard theirPawns = b & pos.pieces(Them);
   Value safety = MaxSafetyBonus;
   File center = std::max(FILE_B, std::min(FILE_G, file_of(ksq)));
-  int stormFactor = 128, weakFactor = 128;
-  if (pawnsBlockingCenter[Us] && center != FILE_D && center != FILE_E)
-      weakFactor = closedCenterWeakFactor;
-  if (!pawnsInCenter[Us])
-      stormFactor = openCenterStormFactor; 
 
   for (File f = center - File(1); f <= center + File(1); ++f)
   {
@@ -291,12 +258,12 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
       b  = theirPawns & file_bb(f);
       Rank rkThem = b ? relative_rank(Us, frontmost_sq(Them, b)) : RANK_1;
 
-      safety -=  (ShelterWeakness[std::min(f, FILE_H - f)][rkUs] * weakFactor / 128)
-               + (StormDanger
+      safety -=  ShelterWeakness[std::min(f, FILE_H - f)][rkUs]
+               + StormDanger
                  [f == file_of(ksq) && rkThem == relative_rank(Us, ksq) + 1 ? BlockedByKing  :
                   rkUs   == RANK_1                                          ? NoFriendlyPawn :
                   rkThem == rkUs + 1                                        ? BlockedByPawn  : Unblocked]
-                 [std::min(f, FILE_H - f)][rkThem] * stormFactor / 128);
+                 [std::min(f, FILE_H - f)][rkThem];
   }
 
   return safety;
