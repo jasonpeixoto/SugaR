@@ -38,7 +38,6 @@ namespace {
 
  template<typename T> T* new_thread() {
    std::thread* th = new T;
-
    *th = std::thread(&T::idle_loop, (T*)th); // Will go to sleep
    return (T*)th;
  }
@@ -171,7 +170,7 @@ void Thread::split(Position& pos, Stack* ss, Value alpha, Value beta, Value* bes
   // Try to allocate available threads
   Thread* slave;
 
-  while (    sp.slavesMask.count() < MAX_SLAVES_PER_SPLITPOINT
+  while (    sp.slavesMask.count() < Threads.max_slaves_per_splitpoint(depth)
          && (slave = Threads.available_slave(&sp)) != nullptr)
   {
      slave->spinlock.acquire();
@@ -292,6 +291,13 @@ void ThreadPool::init() {
   read_uci_options();
 }
 
+size_t ThreadPool::max_slaves_per_splitpoint(Depth depth)
+{
+
+  return 1 + depth / (2 * ONE_PLY);
+}
+
+
 
 // ThreadPool::exit() terminates the threads before the program exits. Cannot be
 // done in d'tor because threads must be terminated before freeing us.
@@ -303,7 +309,7 @@ void ThreadPool::exit() {
 
   for (Thread* th : *this)
       delete_thread(th);
-  
+
   clear(); // Get rid of stale pointers
 }
 
