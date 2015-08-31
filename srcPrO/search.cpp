@@ -362,7 +362,7 @@ namespace {
     Move easyMove = EasyMove.get(pos.key());
     EasyMove.clear();
 
-    std::memset(ss-2, 0, 5 * sizeof(Stack));
+    std::memset(stack, 0, 5 * sizeof(Stack));
 
     depth = DEPTH_ZERO;
     BestMoveChanges = 0;
