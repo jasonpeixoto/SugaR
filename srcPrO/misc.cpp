@@ -20,7 +20,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-
+#include <thread>
 #include "misc.h"
 #include "thread.h"
 
@@ -30,7 +30,7 @@ namespace {
 
 /// Version number. If Version is left empty, then compile date in the format
 /// DD-MM-YY and show in engine_info.
-static const string Version = "PrO v1.0";
+static const string Version = "";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -101,7 +101,9 @@ const string engine_info(bool to_uci) {
   string month, day, year;
   stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  ss << "SugaR " << Version << setfill('0');
+  unsigned int n = std::thread::hardware_concurrency();
+
+  ss << "SugaR PrO " << Version << setfill('0');
 
   if (Version.empty())
   {
@@ -112,8 +114,11 @@ const string engine_info(bool to_uci) {
   ss << (Is64Bit ? " 64" : "")
      << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
      << (to_uci  ? "\nid author ": " by ")
-     << "Marco Zerbinati";
-
+     << "(c) 2015 Marco Zerbinati";
+  ss << (to_uci ? "" : "\n\ninfo string ")
+	 << (to_uci ? "" : std::to_string(n))
+	 << (to_uci ? "" : " processor(s) detected")
+	 << (to_uci ? "" : "\ninfo string 16 MB Hash");
   return ss.str();
 }
 

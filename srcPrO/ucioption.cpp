@@ -21,6 +21,7 @@
 #include <ostream>
 
 #include "evaluate.h"
+#include <thread>
 #include "misc.h"
 #include "search.h"
 #include "thread.h"
@@ -56,7 +57,9 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 void init(OptionsMap& o) {
 
   const int MaxHashMB = Is64Bit ? 1024 * 1024 : 2048;
-
+  
+  unsigned int n = std::thread::hardware_concurrency();
+  if (!n) n = 1;
   o["Write Debug Log"]          << Option(false, on_logger);
   o["Contempt"]                 << Option(0, -100, 100);
   o["Mobility (Midgame)"]       << Option(100, 0, 200, on_eval);
@@ -70,7 +73,7 @@ void init(OptionsMap& o) {
   o["Book File"]                << Option("book.bin");
   o["Best Book Move"]           << Option(false);
   o["Min Split Depth"]          << Option(2, 0, 12, on_threads);
-  o["Threads"]                  << Option(1, 1, MAX_THREADS, on_threads);
+  o["Threads"]                  << Option(n, 1, MAX_THREADS, on_threads);
   o["Hash"]                     << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]               << Option(on_clear_hash);
   o["Ponder"]                   << Option(true);
