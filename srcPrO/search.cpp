@@ -1428,7 +1428,7 @@ moves_loop: // When in check and at SpNode search starts from here
         ss->killers[0] = move;
     }
 
-    Value bonus = Value(depth * 16);
+    Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY));
 
     Square prevSq = to_sq((ss-1)->currentMove);
     HistoryStats& cmh = CounterMovesHistory[pos.piece_on(prevSq)][prevSq];
