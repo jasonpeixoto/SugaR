@@ -173,6 +173,7 @@ namespace {
   const Score Unstoppable        = S( 0, 20);
         Score Hanging            = S(31, 26);
   const Score PawnAttackThreat   = S(20, 20);
+  const Score Checked            = S(20, 20);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -453,23 +454,35 @@ namespace {
         // Enemy queen safe checks
         b = (b1 | b2) & ei.attackedBy[Them][QUEEN];
         if (b)
+        {
             attackUnits += QueenCheck * popcount<Max15>(b);
+            score -= Checked;
+        }
+
 
         // Enemy rooks safe checks
         b = b1 & ei.attackedBy[Them][ROOK];
         if (b)
+        {
             attackUnits += RookCheck * popcount<Max15>(b);
+            score -= Checked;
+        }
 
         // Enemy bishops safe checks
         b = b2 & ei.attackedBy[Them][BISHOP];
         if (b)
+        {
             attackUnits += BishopCheck * popcount<Max15>(b);
+            score -= Checked;
+        }
 
         // Enemy knights safe checks
         b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
         if (b)
+        {
             attackUnits += KnightCheck * popcount<Max15>(b);
-
+            score -= Checked;
+        }
         // To index KingDanger[] attackUnits must be in [0, 99] range
         attackUnits = std::min(399, std::max(0, attackUnits));
 
@@ -774,6 +787,7 @@ namespace {
         Bitboard b;
         if ((b = ei.pi->passed_pawns(WHITE)) != 0)
             score += int(relative_rank(WHITE, frontmost_sq(WHITE, b))) * Unstoppable;
+
 
         if ((b = ei.pi->passed_pawns(BLACK)) != 0)
             score -= int(relative_rank(BLACK, frontmost_sq(BLACK, b))) * Unstoppable;
