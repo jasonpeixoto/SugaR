@@ -776,14 +776,6 @@ namespace {
         if ((b = ei.pi->passed_pawns(WHITE)) != 0)
             score += int(relative_rank(WHITE, frontmost_sq(WHITE, b))) * Unstoppable;
 
-
-
-
-
-
-
-
-
         if ((b = ei.pi->passed_pawns(BLACK)) != 0)
             score -= int(relative_rank(BLACK, frontmost_sq(BLACK, b))) * Unstoppable;
     }
