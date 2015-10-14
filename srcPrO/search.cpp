@@ -1652,8 +1652,13 @@ void Thread::idle_loop() {
 
           assert(searching);
 
+          spinlock.acquire();
+
           searching = false;
           activePosition = nullptr;
+
+          spinlock.release();
+
           sp->slavesMask.reset(idx);
           sp->allSlavesSearching = false;
           sp->nodes += pos.nodes_searched();
