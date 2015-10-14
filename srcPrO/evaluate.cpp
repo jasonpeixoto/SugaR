@@ -39,6 +39,8 @@ namespace {
 
     Score scores[COLOR_NB][TERM_NB];
 
+
+
     std::ostream& operator<<(std::ostream& os, Term idx);
 
     double to_cp(Value v);
@@ -208,11 +210,10 @@ namespace {
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 7, 5, 4, 1 };
 
-  // Bonuses for enemy's safe checks
+  // Penalties for enemy's safe checks
   const int QueenContactCheck = 89;
-  const int RookContactCheck  = 71;
   const int QueenCheck        = 50;
-  const int RookCheck         = 37;
+  const int RookCheck         = 45;
   const int BishopCheck       = 6;
   const int KnightCheck       = 14;
 
@@ -429,25 +430,6 @@ namespace {
 
             if (b)
                 attackUnits +=  QueenContactCheck
-                              * popcount<Max15>(b)
-                              * (Them == pos.side_to_move() ? 2 : 1);
-        }
-
-        // Analyse the enemy's safe rook contact checks. Firstly, find the
-        // undefended squares around the king reachable by the enemy rooks...
-        b = undefended & ei.attackedBy[Them][ROOK] & ~pos.pieces(Them);
-
-        // Consider only squares where the enemy's rook gives check
-        b &= PseudoAttacks[ROOK][ksq];
-
-        if (b)
-        {
-            // ...and then remove squares not supported by another enemy piece
-            b &= (  ei.attackedBy[Them][PAWN]   | ei.attackedBy[Them][KNIGHT]
-                  | ei.attackedBy[Them][BISHOP]);
-
-            if (b)
-                attackUnits +=  RookContactCheck
                               * popcount<Max15>(b)
                               * (Them == pos.side_to_move() ? 2 : 1);
         }
