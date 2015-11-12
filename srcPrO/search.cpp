@@ -1527,7 +1527,7 @@ void RootMove::insert_pv_in_tt(Position& pos) {
 
       if (!ttHit || tte->move() != m) // Don't overwrite correct entries
           tte->save(pos.key(), VALUE_NONE, BOUND_NONE, DEPTH_NONE,
-
+                    m, VALUE_NONE, TT.generation());
       pos.do_move(m, *st++, pos.gives_check(m, CheckInfo(pos)));
   }
 
