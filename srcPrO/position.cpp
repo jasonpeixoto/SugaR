@@ -86,7 +86,7 @@ PieceType min_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, Bi
 } // namespace
 
 
-/// CheckInfo c'tor
+/// CheckInfo constructor
 
 CheckInfo::CheckInfo(const Position& pos) {
 
