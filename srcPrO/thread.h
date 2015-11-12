@@ -75,6 +75,7 @@ struct Thread : public ThreadBase {
   Depth rootDepth;
   HistoryStats history;
   MovesStats counterMoves;
+  Depth completedDepth;
 };
 
 
