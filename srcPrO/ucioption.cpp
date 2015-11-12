@@ -36,7 +36,7 @@ UCI::OptionsMap Options; // Global object
 namespace UCI {
 
 /// 'On change' actions, triggered by an option's value change
-void on_clear_hash(const Option&) { Search::reset(); }
+void on_clear_hash(const Option&) { Search::clear(); }
 void on_hash_size(const Option& o) { TT.resize(o); }
 void on_logger(const Option& o) { start_logger(o); }
 void on_eval(const Option&) { Eval::init(); }
@@ -72,7 +72,7 @@ void init(OptionsMap& o) {
   o["King Safety"]              << Option(100, 0, 200, on_eval);
   o["Book File"]                << Option("book.bin");
   o["Best Book Move"]           << Option(false);
-  o["Threads"]                  << Option(n, 1, MAX_THREADS, on_threads);
+  o["Threads"]                  << Option(n, 1, 128, on_threads);
   o["Hash"]                     << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]               << Option(on_clear_hash);
   o["Ponder"]                   << Option(true);
