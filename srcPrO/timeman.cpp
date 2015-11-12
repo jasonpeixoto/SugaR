@@ -1,13 +1,14 @@
 /*
-  SugaR, a UCI chess playing engine derived from Stockfish
+  Stockfish, a UCI chess playing engine derived from Glaurung 2.1
+  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
-  SugaR is free software: you can redistribute it and/or modify
+  Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  SugaR is distributed in the hope that it will be useful,
+  Stockfish is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
@@ -27,6 +28,7 @@
 TimeManagement Time; // Our global time management object
 
 namespace {
+
   enum TimeType { OptimumTime, MaxTime };
 
   const int MoveHorizon   = 50;   // Plan time management at most this many moves ahead
@@ -78,7 +80,7 @@ namespace {
 ///  inc >  0 && movestogo == 0 means: x basetime + z increment
 ///  inc >  0 && movestogo != 0 means: x moves in y minutes + z increment
 
-void TimeManagement::init(Search::LimitsType& limits, Color us, int ply, TimePoint now)
+void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
 {
   int minThinkingTime = Options["Minimum Thinking Time"];
   int moveOverhead    = Options["Move Overhead"];
@@ -100,7 +102,7 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply, TimePoi
       limits.npmsec = npmsec;
   }
 
-  start = now;
+  startTime = limits.startTime;
   unstablePvFactor = 1;
   optimumTime = maximumTime = std::max(limits.time[us], minThinkingTime);
 

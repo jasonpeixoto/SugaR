@@ -110,6 +110,8 @@ namespace {
 
     Search::LimitsType limits;
     string token;
+	
+	limits.startTime = now(); // As early as possible!
 
     while (is >> token)
         if (token == "searchmoves")
