@@ -1,4 +1,3 @@
-
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
@@ -38,6 +37,7 @@ namespace {
     };
 
     Score scores[COLOR_NB][TERM_NB];
+
 
 
 
@@ -704,6 +704,28 @@ namespace {
   }
 
 
+  // evaluate_initiative() computes the initiative correction value for the position, i.e. 
+  // second order bonus/malus based on the known attacking/defending status of the players. 
+  Score evaluate_initiative(const Position& pos, const EvalInfo& ei, const Score positional_score) {
+
+    int pawns           =  pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
+    int king_separation =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
+    int asymmetry       =  ei.pi->pawn_asymmetry();
+
+    // Compute the initiative bonus for the attacking side
+    int attacker_bonus =   8 * (pawns + asymmetry + king_separation) - 120;
+
+    // Now apply the bonus: note that we find the attacking side by extracting the sign 
+    // of the endgame value of "positional_score", and that we carefully cap the bonus so
+    // that the endgame score with the correction will never be divided by more than two.
+    int eg = eg_value(positional_score);
+    int value = ((eg > 0) - (eg < 0)) * std::max( attacker_bonus , -abs( eg / 2 ) );
+
+    return make_score( 0 , value ) ; 
+  }
+
+} // namespace
+
   // do_evaluate() is the evaluation entry point, called directly from evaluate()
 
   template<bool Trace>
@@ -786,6 +808,9 @@ namespace {
         Score s = evaluate_space<WHITE>(pos, ei) - evaluate_space<BLACK>(pos, ei);
         score += apply_weight(s, Weights[Space]);
     }
+	
+  // Evaluate initiative
+  score += evaluate_initiative(pos, ei, score);
 
     // Scale winning side if position is more drawish than it appears
     Color strongSide = eg_value(score) > VALUE_DRAW ? WHITE : BLACK;
@@ -817,11 +842,6 @@ namespace {
                  sf = ei.pi->pawn_span(strongSide) ? ScaleFactor(51) : ScaleFactor(37);
     }
 
-
-  // Scale endgame by number of pawns
-  int p = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
-  int v_eg = 1 + abs(int(eg_value(score)));
-  sf = ScaleFactor(std::max(sf / 2, sf - 8 * SCALE_FACTOR_NORMAL * (12 - p) / v_eg));
 
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     Value v =  mg_value(score) * int(ei.mi->game_phase())
@@ -913,8 +933,6 @@ namespace {
 
     return ss.str();
   }
-
-} // namespace
 
 
 namespace Eval {
