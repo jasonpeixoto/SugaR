@@ -37,26 +37,8 @@ namespace {
     };
 
     Score scores[COLOR_NB][TERM_NB];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     std::ostream& operator<<(std::ostream& os, Term idx);
+
 
     double to_cp(Value v);
     void write(int idx, Color c, Score s);
@@ -110,10 +92,6 @@ namespace {
   // Evaluation weights, initialized from UCI options
   enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
   struct Weight { int mg, eg; } Weights[5];
-
-
-
-
 
   #define V(v) Value(v)
   #define S(mg, eg) make_score(mg, eg)
@@ -176,8 +154,8 @@ namespace {
 
   // PassedFile[File] contains a bonus according to the file of a passed pawn.
   const Score PassedFile[] = {
-    S( 12,  10), S( 3,  10), S( 1, -8), S(-27, -12),
-    S(-27, -12), S( 1, -8),  S( 3, 10), S( 12,  10)
+    S( 12,  10), S( 3, 10), S( 1, -8), S(-27, -12),
+    S(-27, -12), S( 1, -8), S( 3, 10), S( 12,  10)
   };
 
   const Score ThreatenedByHangingPawn = S(40, 60);
@@ -708,21 +686,19 @@ namespace {
   // evaluate_initiative() computes the initiative correction value for the
   // position, i.e. second order bonus/malus based on the known attacking/defending
   // status of the players.
-  Score evaluate_initiative(const Position& pos, const EvalInfo& ei, const Score positional_score) {
+  Score evaluate_initiative(const Position& pos, int asymmetry, Value eg) {
 
-    int king_separation = distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
-    int pawns           = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
-    int asymmetry       = ei.pi->pawn_asymmetry();
+    int kingDistance = distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
+    int pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
 
     // Compute the initiative bonus for the attacking side
-    int attacker_bonus = 8 * (pawns + asymmetry + king_separation) - 120;
+    int initiative = 8 * (pawns + asymmetry + kingDistance - 15);
 
-    // Now apply the bonus: note that we find the attacking side by extracting the sign
-    // of the endgame value of "positional_score", and that we carefully cap the bonus so
-    // that the endgame score with the correction will never be divided by more than two.
-    int eg = eg_value(positional_score);
-    int value = ((eg > 0) - (eg < 0)) * std::max(attacker_bonus, -abs(eg / 2));
-
+    // Now apply the bonus: note that we find the attacking side by extracting
+    // the sign of the endgame value, and that we carefully cap the bonus so
+    // that the endgame score will never be divided by more than two.
+    int value = ((eg > 0) - (eg < 0)) * std::max(initiative, -abs(eg / 2));
+    
     return make_score(0, value);
   }
 
@@ -758,29 +734,6 @@ namespace {
     // Initialize attack and king safety bitboards
     init_eval_info<WHITE>(pos, ei);
     init_eval_info<BLACK>(pos, ei);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     ei.attackedBy[WHITE][ALL_PIECES] |= ei.attackedBy[WHITE][KING];
     ei.attackedBy[BLACK][ALL_PIECES] |= ei.attackedBy[BLACK][KING];
@@ -834,8 +787,8 @@ namespace {
     }
 	
 
-  // Evaluate initiative
-  score += evaluate_initiative(pos, ei, score);
+  // Evaluate position potential for the winning side
+  score += evaluate_initiative(pos, ei.pi->pawn_asymmetry(), eg_value(score));
 
     // Scale winning side if position is more drawish than it appears
     Color strongSide = eg_value(score) > VALUE_DRAW ? WHITE : BLACK;

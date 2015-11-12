@@ -72,7 +72,6 @@ void init(OptionsMap& o) {
   o["King Safety"]              << Option(100, 0, 200, on_eval);
   o["Book File"]                << Option("book.bin");
   o["Best Book Move"]           << Option(false);
-  o["Min Split Depth"]          << Option(2, 0, 12, on_threads);
   o["Threads"]                  << Option(n, 1, MAX_THREADS, on_threads);
   o["Hash"]                     << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]               << Option(on_clear_hash);

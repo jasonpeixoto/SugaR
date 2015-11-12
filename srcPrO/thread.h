@@ -75,10 +75,10 @@ struct Thread : public ThreadBase {
 
   Position rootPos;
   Search::RootMoveVector rootMoves;
+  Depth rootDepth;
   Search::Stack stack[MAX_PLY+4];
-  HistoryStats History;
-  MovesStats Countermoves;
-  Depth depth;
+  HistoryStats history;
+  MovesStats counterMoves;
 };
 
 
