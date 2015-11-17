@@ -93,6 +93,8 @@ namespace {
   enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
   struct Weight { int mg, eg; } Weights[5];
 
+
+
   #define V(v) Value(v)
   #define S(mg, eg) make_score(mg, eg)
 
@@ -125,11 +127,23 @@ namespace {
       S(112,125), S(113,127), S(117,137), S(122,143) }
   };
 
+  // Mask of allowed outpost squares indexed by color
+  const Bitboard OutpostMask[COLOR_NB] = {
+    Rank4BB | Rank5BB | Rank6BB, Rank5BB | Rank4BB | Rank3BB
+  };
+
   // Outpost[knight/bishop][supported by pawn] contains bonuses for knights and
   // bishops outposts, bigger if outpost piece is supported by a pawn.
   const Score Outpost[][2] = {
     { S(42,11), S(63,17) }, // Knights
     { S(18, 5), S(27, 8) }  // Bishops
+  };
+
+  // ReachableOutpost[knight/bishop][supported by pawn] contains bonuses for knights and
+  // bishops which can reach a outpost square in one move, bigger if outpost square is supported by a pawn.
+  const Score ReachableOutpost[][2] = {
+    { S(21, 5), S(31, 8) }, // Knights
+    { S( 8, 2), S(13, 4) }  // Bishops
   };
 
   // Threat[minor/rook][attacked PieceType] contains
@@ -145,6 +159,7 @@ namespace {
   const Score ThreatenedByPawn[PIECE_TYPE_NB] = {
     S(0, 0), S(0, 0), S(107, 138), S(84, 122), S(114, 203), S(121, 217)
   };
+
   // Passed[mg/eg][rank] contains midgame and endgame bonuses for passed pawns.
   // We don't use a Score because we process the two components independently.
   const Value Passed[][RANK_NB] = {
@@ -260,7 +275,7 @@ namespace {
   template<PieceType Pt, Color Us, bool Trace>
   Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility, Bitboard* mobilityArea) {
 
-    Bitboard b;
+    Bitboard b, bb;
     Square s;
     Score score = SCORE_ZERO;
 
@@ -286,7 +301,7 @@ namespace {
         {
             ei.kingAttackersCount[Us]++;
             ei.kingAttackersWeight[Us] += KingAttackWeights[Pt];
-            Bitboard bb = b & ei.attackedBy[Them][KING];
+            bb = b & ei.attackedBy[Them][KING];
             if (bb)
                 ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
         }
@@ -303,11 +318,16 @@ namespace {
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
-            // Bonus for outpost square
-            if (   relative_rank(Us, s) >= RANK_4
-                && relative_rank(Us, s) <= RANK_6
-                && !(pos.pieces(Them, PAWN) & pawn_attack_span(Us, s)))
+            // Bonus for outpost squares
+            bb = OutpostMask[Us] & ~ei.pi->pawn_attacks_span(Them);
+            if (bb & s)
                 score += Outpost[Pt == BISHOP][!!(ei.attackedBy[Us][PAWN] & s)];
+            else
+            {
+                bb &= b & ~pos.pieces(Us);
+                if (bb)
+                   score += ReachableOutpost[Pt == BISHOP][!!(ei.attackedBy[Us][PAWN] & bb)];
+            }
 
             // Bonus when behind a pawn
             if (    relative_rank(Us, s) < RANK_5
@@ -774,6 +794,7 @@ namespace {
         Bitboard b;
         if ((b = ei.pi->passed_pawns(WHITE)) != 0)
             score += int(relative_rank(WHITE, frontmost_sq(WHITE, b))) * Unstoppable;
+
 
         if ((b = ei.pi->passed_pawns(BLACK)) != 0)
             score -= int(relative_rank(BLACK, frontmost_sq(BLACK, b))) * Unstoppable;

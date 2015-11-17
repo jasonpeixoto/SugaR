@@ -221,11 +221,11 @@ uint64_t Search::perft(Position& pos, Depth depth) {
 template uint64_t Search::perft<true>(Position&, Depth);
 
 
-/// MainThread::think() is called by the main thread when the program receives
+/// MainThread::search() is called by the main thread when the program receives
 /// the UCI 'go' command. It searches from root position and at the end prints
 /// the "bestmove" to output.
 
-void MainThread::think() {
+void MainThread::search() {
   static PolyglotBook book; // Defined static to initialize the PRNG only once
 
   Color us = rootPos.side_to_move();
@@ -312,15 +312,7 @@ void MainThread::think() {
           }
       }
 
-      search(true); // Let's start searching!
-
-      // Stop the threads
-      Signals.stop = true;
-
-      // Wait until all threads have finished
-      for (Thread* th : Threads)
-          if (th != this)
-              th->wait_while(th->searching);
+      Thread::search(); // Let's start searching!
   }
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
@@ -338,6 +330,14 @@ finalize:
       Signals.stopOnPonderhit = true;
       wait(Signals.stop);
   }
+
+  // Stop the threads if not already stopped
+  Signals.stop = true;
+
+  // Wait until all threads have finished
+  for (Thread* th : Threads)
+      if (th != this)
+          th->join();
 
   // Check if there are threads with a better score than main thread.
   Thread* bestThread = this;
@@ -364,17 +364,19 @@ finalize:
 // repeatedly with increasing depth until the allocated thinking time has been
 // consumed, user stops the search, or the maximum search depth is reached.
 
-void Thread::search(bool isMainThread) {
+void Thread::search() {
 
   Stack stack[MAX_PLY+4], *ss = stack+2; // To allow referencing (ss-2) and (ss+2)
   Value bestValue, alpha, beta, delta;
   Move easyMove = MOVE_NONE;
+  bool isMainThread = (this == Threads.main());
 
   std::memset(ss-2, 0, 5 * sizeof(Stack));
 
   bestValue = delta = alpha = -VALUE_INFINITE;
   beta = VALUE_INFINITE;
   completedDepth = DEPTH_ZERO;
+
   if (isMainThread)
   {
       easyMove = EasyMove.get(rootPos.key());
@@ -544,9 +546,6 @@ void Thread::search(bool isMainThread) {
       }
   }
 
-  searching = false;
-  notify_one(); // Wake up main thread if is sleeping waiting for us
-
   if (!isMainThread)
       return;
 
@@ -595,15 +594,15 @@ namespace {
     ss->ply = (ss-1)->ply + 1;
 
     // Check for available remaining time
-    if (thisThread->resetCallsCnt.load(std::memory_order_relaxed))
+    if (thisThread->resetCalls.load(std::memory_order_relaxed))
     {
-        thisThread->resetCallsCnt = false;
+        thisThread->resetCalls = false;
         thisThread->callsCnt = 0;
     }
     if (++thisThread->callsCnt > 4096)
     {
         for (Thread* th : Threads)
-            th->resetCallsCnt = true;
+            th->resetCalls = true;
 
         check_time();
     }
@@ -616,7 +615,7 @@ namespace {
     {
         // Step 2. Check for aborted search and immediate draw
         if (Signals.stop.load(std::memory_order_relaxed) || pos.is_draw() || ss->ply >= MAX_PLY)
-            return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos) 
+            return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos)
                                                   : DrawValue[pos.side_to_move()];
 
         // Step 3. Mate distance pruning. Even if we mate at the next move our score
@@ -931,11 +930,13 @@ moves_loop: // When in check search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
+		  &&  move != ss->killers[0]
               && moveCount >= FutilityMoveCounts[improving][depth])
               continue;
 
           // History based pruning
-          if (   depth <= 3 * ONE_PLY
+          if (   depth <= 4 * ONE_PLY
+              && move != ss->killers[0]
               && thisThread->history[pos.moved_piece(move)][to_sq(move)] < VALUE_ZERO
               && cmh[pos.moved_piece(move)][to_sq(move)] < VALUE_ZERO)
               continue;
@@ -1455,7 +1456,7 @@ moves_loop: // When in check search starts from here
 
     // RootMoves are already sorted by score in descending order
     Value topScore = rootMoves[0].score;
-	int delta = std::min(topScore - rootMoves[multiPV - 1].score, PawnValueMg);
+    int delta = std::min(topScore - rootMoves[multiPV - 1].score, PawnValueMg);
     int weakness = 120 - 2 * level;
     int maxScore = -VALUE_INFINITE;
 
@@ -1474,7 +1475,8 @@ moves_loop: // When in check search starts from here
             best = rootMoves[i].pv[0];
         }
     }
-	
+
+
     return best;
   }
 
@@ -1591,6 +1593,7 @@ void RootMove::insert_pv_in_tt(Position& pos) {
       if (!ttHit || tte->move() != m) // Don't overwrite correct entries
           tte->save(pos.key(), VALUE_NONE, BOUND_NONE, DEPTH_NONE,
                     m, VALUE_NONE, TT.generation());
+
       pos.do_move(m, *st++, pos.gives_check(m, CheckInfo(pos)));
   }
 
