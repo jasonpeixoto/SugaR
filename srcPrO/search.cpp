@@ -913,7 +913,18 @@ moves_loop: // When in check search starts from here
           ss->excludedMove = MOVE_NONE;
 
           if (value < rBeta)
+          {
               extension = ONE_PLY;
+              // Give bonus to previous opponent move, because it caused a singular extension
+              if (is_ok((ss-1)->currentMove) && is_ok((ss-2)->currentMove) && !pos.captured_piece_type())
+              {
+                  Square prevprevSq = to_sq((ss-2)->currentMove);
+                  prevSq = to_sq((ss-1)->currentMove);
+                  CounterMovesStats& scmh = CounterMovesHistory[pos.piece_on(prevprevSq)][prevprevSq];
+                  Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + depth / ONE_PLY - 1);
+                  scmh.update(pos.piece_on(prevSq), prevSq, bonus);
+              }
+          }
       }
 
       // Update the current move (this must be done after singular extension search)
