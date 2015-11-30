@@ -921,7 +921,7 @@ moves_loop: // When in check search starts from here
                   Square prevprevSq = to_sq((ss-2)->currentMove);
                   prevSq = to_sq((ss-1)->currentMove);
                   CounterMovesStats& scmh = CounterMovesHistory[pos.piece_on(prevprevSq)][prevprevSq];
-                  Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + depth / ONE_PLY - 1);
+                  Value bonus = Value((depth / 2 / ONE_PLY) * (depth / 2 / ONE_PLY) + depth / 2 / ONE_PLY - 1);
                   scmh.update(pos.piece_on(prevSq), prevSq, bonus);
               }
           }
