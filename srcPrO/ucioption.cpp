@@ -61,7 +61,7 @@ void init(OptionsMap& o) {
   unsigned int n = std::thread::hardware_concurrency();
   if (!n) n = 1;
   o["Write Debug Log"]          << Option(false, on_logger);
-  o["Contempt"]                 << Option(0, -100, 100);
+  o["Contempt"]                 << Option(8, -100, 100);
   o["Mobility (Midgame)"]       << Option(100, 0, 200, on_eval);
   o["Mobility (Endgame)"]       << Option(100, 0, 200, on_eval);
   o["Pawn Structure (Midgame)"] << Option(100, 0, 200, on_eval);
