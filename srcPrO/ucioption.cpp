@@ -78,9 +78,6 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(6, 0, 6);
-  // Hanging pieces
-  o["Hanging (Midgame)"]        << Option(31, -10, 250);
-  o["Hanging (Endgame)"]        << Option(26, -10, 250);
 }
 
 
