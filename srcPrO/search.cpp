@@ -1,6 +1,5 @@
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
-
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
   SugaR is free software: you can redistribute it and/or modify
@@ -226,8 +225,8 @@ template uint64_t Search::perft<true>(Position&, Depth);
 /// the "bestmove" to output.
 
 void MainThread::search() {
-  static PolyglotBook book; // Defined static to initialize the PRNG only once
 
+  static PolyglotBook book; // Defined static to initialize the PRNG only once
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
 
@@ -318,6 +317,7 @@ void MainThread::search() {
   // the available ones before to exit.
   if (Limits.npmsec)
       Time.availableNodes += Limits.inc[us] - Threads.nodes_searched();
+
 finalize:
   // When we reach the maximum depth, we can arrive here without a raise of
   // Signals.stop. However, if we are pondering or in an infinite search,
@@ -913,18 +913,7 @@ moves_loop: // When in check search starts from here
           ss->excludedMove = MOVE_NONE;
 
           if (value < rBeta)
-          {
               extension = ONE_PLY;
-              // Give bonus to previous opponent move, because it caused a singular extension
-              if (is_ok((ss-1)->currentMove) && is_ok((ss-2)->currentMove) && !pos.captured_piece_type())
-              {
-                  Square prevprevSq = to_sq((ss-2)->currentMove);
-                  prevSq = to_sq((ss-1)->currentMove);
-                  CounterMovesStats& scmh = CounterMovesHistory[pos.piece_on(prevprevSq)][prevprevSq];
-                  Value bonus = Value((depth / 2 / ONE_PLY) * (depth / 2 / ONE_PLY) + depth / 2 / ONE_PLY - 1);
-                  scmh.update(pos.piece_on(prevSq), prevSq, bonus);
-              }
-          }
       }
 
       // Update the current move (this must be done after singular extension search)
@@ -940,7 +929,6 @@ moves_loop: // When in check search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-		  &&  move != ss->killers[0]
               && moveCount >= FutilityMoveCounts[improving][depth])
               continue;
 
@@ -1485,7 +1473,6 @@ moves_loop: // When in check search starts from here
             best = rootMoves[i].pv[0];
         }
     }
-
 
     return best;
   }

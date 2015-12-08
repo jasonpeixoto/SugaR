@@ -206,6 +206,7 @@ namespace {
   }
 
 } // namespace
+
 namespace Pawns {
 
 /// Pawns::init() initializes some tables needed by evaluation. Instead of using
@@ -282,7 +283,6 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
   return safety;
 }
-
 
 
 /// Entry::do_king_safety() calculates a bonus for king safety. It is called only

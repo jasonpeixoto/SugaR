@@ -1,4 +1,3 @@
-
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
@@ -17,8 +16,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-extern int large_use; // MZ
-
 #include <fstream>
 #include <iostream>
 #include <istream>
@@ -28,7 +25,6 @@ extern int large_use; // MZ
 #include "position.h"
 #include "search.h"
 #include "thread.h"
-#include "tt.h"
 #include "uci.h"
 
 using namespace std;
@@ -169,9 +165,7 @@ void benchmark(const Position& current, istream& is) {
   elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
 
   dbg_print(); // Just before to exit
-  
-if(!large_use) // MZ
-	cerr << "****\n";
+
   cerr << "\n==========================="
        << "\nTotal time (ms) : " << elapsed
        << "\nNodes searched  : " << nodes

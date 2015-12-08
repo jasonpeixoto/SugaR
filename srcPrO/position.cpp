@@ -30,9 +30,6 @@
 #include "tt.h"
 #include "uci.h"
 
-#define MEMALIGN(a, b, c) a = _aligned_malloc (c, b) 
-#define ALIGNED_FREE(x) _aligned_free (x) // BRICE
-
 using std::string;
 
 Value PieceValue[PHASE_NB][PIECE_NB] = {
@@ -59,7 +56,7 @@ const string PieceToChar(" PNBRQK  pnbrqk");
 // from the bitboards and scan for new X-ray attacks behind it.
 
 template<int Pt>
-PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stmAttackers,
+PieceType min_attacker(const Bitboard* bb, Square to, Bitboard stmAttackers,
                        Bitboard& occupied, Bitboard& attackers) {
 
   Bitboard b = stmAttackers & bb[Pt];
@@ -79,7 +76,7 @@ PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stm
 }
 
 template<>
-PieceType min_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&) {
+PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitboard&) {
   return KING; // No need to update bitboards: it is the last cycle
 }
 
@@ -433,7 +430,6 @@ const string Position::fen() const {
 
   return ss.str();
 }
-
 
 
 /// Position::game_phase() calculates the game phase interpolating total non-pawn
@@ -1142,13 +1138,11 @@ bool Position::pos_is_ok(int* failedStep) const {
                   && relative_rank(sideToMove, ep_square()) != RANK_6))
               return false;
 
-
       if (step == King)
           if (   std::count(board, board + SQUARE_NB, W_KING) != 1
               || std::count(board, board + SQUARE_NB, B_KING) != 1
               || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
               return false;
-
 
       if (step == Bitboards)
       {

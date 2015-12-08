@@ -63,7 +63,6 @@ private:
   T table[PIECE_NB][SQUARE_NB];
 };
 
-
 typedef Stats<Move> MovesStats;
 typedef Stats<Value, false> HistoryStats;
 typedef Stats<Value,  true> CounterMovesStats;

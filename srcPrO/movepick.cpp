@@ -1,4 +1,3 @@
-
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
@@ -109,6 +108,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, Value
   assert(!pos.checkers());
 
   stage = PROBCUT;
+
   // In ProbCut we generate captures with SEE higher than the given threshold
   ttMove =   ttm
           && pos.pseudo_legal(ttm)

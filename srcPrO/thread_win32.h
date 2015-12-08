@@ -57,6 +57,7 @@ private:
 };
 
 typedef std::condition_variable_any ConditionVariable;
+
 #else // Default case: use STL classes
 
 typedef std::mutex Mutex;
