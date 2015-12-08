@@ -30,6 +30,7 @@ using namespace std;
 #define ALIGNED_FREE(x) _aligned_free (x)
 
 int large_use;
+
 #ifndef _WIN32 // Linux 
 #include <sys/ipc.h>
 #include <sys/shm.h>
