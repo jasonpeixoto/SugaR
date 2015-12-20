@@ -106,10 +106,10 @@ namespace {
 
 
   // Evaluation weights, indexed by the corresponding evaluation term
-  enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety, Threats };
+  enum { Mobility, PawnStructure, PassedPawns, Space, KingSafety };
 
   int Weights[6][2] = {
-    {266, 334}, {214, 203}, {193, 262}, {47, 0}, {330, 0}, {404, 241}
+    {266, 334}, {214, 203}, {193, 262}, {47, 0}, {330, 0}
   };
 
   TUNE(Weights);
@@ -165,14 +165,14 @@ namespace {
   // bonuses according to which piece type attacks which one.
   // Attacks on lesser pieces which are pawn defended are not considered.
   const Score Threat[2][PIECE_TYPE_NB] = {
-   { S(0, 0), S(0, 32), S(25, 39), S(28, 44), S(42, 98), S(35,105) }, // Minor attacks
-   { S(0, 0), S(0, 27), S(26, 57), S(26, 57), S( 0, 30), S(23, 51) }  // Rook attacks
+   { S(0, 0), S(0, 33), S(45, 43), S(46, 47), S(72, 107), S(48,118) }, // Minor attacks
+   { S(0, 0), S(0, 25), S(40, 62), S(40, 59), S( 0,  34), S(35, 48) }  // Rook attacks
   };
 
   // ThreatenedByPawn[PieceType] contains a penalty according to which piece
   // type is attacked by a pawn.
   const Score ThreatenedByPawn[PIECE_TYPE_NB] = {
-    S(0, 0), S(0, 0), S(107, 138), S(84, 122), S(114, 203), S(121, 217)
+    S(0, 0), S(0, 0), S(176, 139), S(131, 127), S(217, 218), S(203, 215)
   };
 
   // Passed[mg/eg][rank] contains midgame and endgame bonuses for passed pawns.
@@ -188,11 +188,11 @@ namespace {
     S(-27, -12), S( 1, -8), S( 3, 10), S( 12,  10)
   };
 
-  const Score ThreatenedByHangingPawn = S(40, 60);
+  const Score ThreatenedByHangingPawn = S(70, 63);
 
   // Assorted bonuses and penalties used by evaluation
-  const Score KingOnOne          = S( 2, 58);
-  const Score KingOnMany         = S( 6,125);
+  const Score KingOnOne          = S( 3, 62);
+  const Score KingOnMany         = S( 9,138);
   const Score RookOnPawn         = S( 7, 27);
   const Score RookOnOpenFile     = S(43, 21);
   const Score RookOnSemiOpenFile = S(19, 10);
@@ -200,8 +200,8 @@ namespace {
   const Score MinorBehindPawn    = S(16,  0);
   const Score TrappedRook        = S(92,  0);
   const Score Unstoppable        = S( 0, 20);
-  const Score Hanging            = S(31, 26);
-  const Score PawnAttackThreat   = S(20, 20);
+  const Score Hanging            = S(48, 28);
+  const Score PawnAttackThreat   = S(31, 19);
   const Score Checked            = S(20, 20);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
@@ -269,6 +269,9 @@ namespace {
 
   template<PieceType Pt, Color Us, bool DoTrace>
   Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility, const Bitboard* mobilityArea) {
+
+
+
 
 
     Bitboard b, bb;
@@ -568,9 +571,9 @@ namespace {
         score += popcount<Max15>(b) * PawnAttackThreat;
 
     if (DoTrace)
-        Trace::add(THREAT, Us, make_score(mg_value(score) * Weights[5][0] / 256, eg_value(score) * Weights[5][1] / 256));
+        Trace::add(THREAT, Us, score);
 
-    return make_score(mg_value(score) * Weights[5][0] / 256, eg_value(score) * Weights[5][1] / 256);
+    return score;
   }
 
 
