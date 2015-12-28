@@ -58,6 +58,7 @@ void init(OptionsMap& o) {
   
   unsigned int n = std::thread::hardware_concurrency();
   if (!n) n = 1;
+
   o["Write Debug Log"]       << Option(false, on_logger);
   o["Contempt"]              << Option(0, -100, 100);
   o["Book File"]             << Option("book.bin");
@@ -71,7 +72,7 @@ void init(OptionsMap& o) {
   o["Skill Level"]           << Option(20, 0, 20);
   o["Move Overhead"]         << Option(30, 0, 5000);
   o["Minimum Thinking Time"] << Option(20, 0, 5000);
-  o["Slow Mover"]            << Option(89, 10, 1000);
+  o["Slow Mover"]            << Option(84, 10, 1000);
   o["nodestime"]             << Option(0, 0, 10000);
   o["UCI_Chess960"]          << Option(false);
   o["SyzygyPath"]            << Option("<empty>", on_tb_path);

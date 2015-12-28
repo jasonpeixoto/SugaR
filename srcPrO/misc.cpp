@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+
 #include <thread>
 #include "misc.h"
 #include "thread.h"
@@ -114,6 +115,8 @@ const string engine_info(bool to_uci) {
   ss << (Is64Bit ? " 64" : "")
      << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
      << (to_uci  ? "\nid author ": " by ")
+
+
      << "(c) 2015 Marco Zerbinati";
   ss << (to_uci ? "" : "\n\ninfo string ")
 	 << (to_uci ? "" : std::to_string(n))
