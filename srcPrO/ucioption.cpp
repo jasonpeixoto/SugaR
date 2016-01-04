@@ -20,6 +20,7 @@
 #include <cassert>
 #include <ostream>
 
+#include "evaluate.h"
 #include <thread>
 #include "misc.h"
 #include "search.h"
@@ -38,6 +39,7 @@ namespace UCI {
 void on_clear_hash(const Option&) { Search::clear(); }
 void on_hash_size(const Option& o) { TT.resize(o); }
 void on_logger(const Option& o) { start_logger(o); }
+void on_eval(const Option&) { Eval::init(); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 
@@ -58,27 +60,36 @@ void init(OptionsMap& o) {
   
   unsigned int n = std::thread::hardware_concurrency();
   if (!n) n = 1;
+  o["Write Debug Log"]          << Option(false, on_logger);
+  o["Contempt"]                 << Option(8, -100, 100);
+  o["Pawn Structure (Midgame)"] << Option(100, 0, 200, on_eval);
+  o["Pawn Structure (Endgame)"] << Option(100, 0, 200, on_eval);
+  o["Passed Pawns (Midgame)"]   << Option(100, 0, 200, on_eval);
+  o["Passed Pawns (Endgame)"]   << Option(100, 0, 200, on_eval);
+  o["Space"]                    << Option(100, 0, 200, on_eval);
+  o["King Safety"]              << Option(100, 0, 200, on_eval);
+  o["Book File"]                << Option("book.bin");
+  o["Best Book Move"]           << Option(false);
+  o["Threads"]                  << Option(n, 1, 128, on_threads);
+  o["Hash"]                     << Option(16, 1, MaxHashMB, on_hash_size);
+  o["Clear Hash"]               << Option(on_clear_hash);
+  o["Ponder"]                   << Option(true);
+  o["OwnBook"]                  << Option(false);
+  o["MultiPV"]                  << Option(1, 1, 500);
+  o["Skill Level"]              << Option(20, 0, 20);
+  o["Move Overhead"]            << Option(30, 0, 5000);
+  o["Minimum Thinking Time"]    << Option(20, 0, 5000);
+  o["Slow Mover"]            << Option(89, 10, 1000);
+  o["nodestime"]                << Option(0, 0, 10000);
+  o["UCI_Chess960"]             << Option(false);
+  o["SyzygyPath"]               << Option("<empty>", on_tb_path);
+  o["SyzygyProbeDepth"]         << Option(1, 1, 100);
+  o["Syzygy50MoveRule"]         << Option(true);
+  o["SyzygyProbeLimit"]         << Option(6, 0, 6);
+  // Hanging pieces
+  o["Hanging (Midgame)"]        << Option(31, -10, 250);
+  o["Hanging (Endgame)"]        << Option(26, -10, 250);
 
-  o["Write Debug Log"]       << Option(false, on_logger);
-  o["Contempt"]              << Option(0, -100, 100);
-  o["Book File"]             << Option("book.bin");
-  o["Best Book Move"]        << Option(false);
-  o["Threads"]               << Option(1, 1, 128, on_threads);
-  o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
-  o["Clear Hash"]            << Option(on_clear_hash);
-  o["Ponder"]                << Option(false);
-  o["OwnBook"]               << Option(false);
-  o["MultiPV"]               << Option(1, 1, 500);
-  o["Skill Level"]           << Option(20, 0, 20);
-  o["Move Overhead"]         << Option(30, 0, 5000);
-  o["Minimum Thinking Time"] << Option(20, 0, 5000);
-  o["Slow Mover"]            << Option(84, 10, 1000);
-  o["nodestime"]             << Option(0, 0, 10000);
-  o["UCI_Chess960"]          << Option(false);
-  o["SyzygyPath"]            << Option("<empty>", on_tb_path);
-  o["SyzygyProbeDepth"]      << Option(1, 1, 100);
-  o["Syzygy50MoveRule"]      << Option(true);
-  o["SyzygyProbeLimit"]      << Option(6, 0, 6);
 }
 
 
