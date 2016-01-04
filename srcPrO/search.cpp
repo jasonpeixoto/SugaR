@@ -1,5 +1,6 @@
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
+
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
 
   SugaR is free software: you can redistribute it and/or modify
@@ -186,6 +187,8 @@ void Search::clear() {
       th->history.clear();
       th->counterMoves.clear();
   }
+
+  Threads.main()->previousMoveScore = VALUE_INFINITE;
 }
 
 
@@ -224,8 +227,8 @@ template uint64_t Search::perft<true>(Position&, Depth);
 /// the "bestmove" to output.
 
 void MainThread::search() {
-
   static PolyglotBook book; // Defined static to initialize the PRNG only once
+
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
 
@@ -316,7 +319,6 @@ void MainThread::search() {
   // the available ones before to exit.
   if (Limits.npmsec)
       Time.availableNodes += Limits.inc[us] - Threads.nodes_searched();
-
 finalize:
   // When we reach the maximum depth, we can arrive here without a raise of
   // Signals.stop. However, if we are pondering or in an infinite search,
@@ -348,6 +350,8 @@ finalize:
               && th->rootMoves[0].score > bestThread->rootMoves[0].score)
               bestThread = th;
   }
+
+  previousMoveScore = bestThread->rootMoves[0].score;
 
   // Send new PV when needed
   if (bestThread != this)
@@ -548,10 +552,12 @@ void Thread::search() {
               // of the available time has been used or we matched an easyMove
               // from the previous search and just did a fast verification.
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.available() * (mainThread->failedLow ? 641 : 315) / 640
-                  || (mainThread->easyMovePlayed = (   rootMoves[0].pv[0] == easyMove
-                                                    && mainThread->bestMoveChanges < 0.03
-                                                    && Time.elapsed() > Time.available() / 8)))
+                  || Time.elapsed() > Time.available() * ( 640  - 160 * !mainThread->failedLow 
+                     - 126 * (bestValue >= mainThread->previousMoveScore)  
+                     - 124 * (bestValue >= mainThread->previousMoveScore && !mainThread->failedLow))/640
+                  || ( mainThread->easyMovePlayed = ( rootMoves[0].pv[0] == easyMove
+                                                     && mainThread->bestMoveChanges < 0.03
+                                                     && Time.elapsed() > Time.available() * 25/206)))
               {
                   // If we are allowed to ponder do not stop the search now but
                   // keep pondering until the GUI sends "ponderhit" or "stop".
