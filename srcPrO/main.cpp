@@ -56,5 +56,4 @@ int main(int argc, char* argv[]) {
   }
 
   Threads.exit();
-  return 0;
 }

@@ -89,11 +89,11 @@ namespace {
 
     // Read option name (can contain spaces)
     while (is >> token && token != "value")
-        name += string(" ", name.empty() ? 0 : 1) + token;
+        name += string(" ", !name.empty()) + token;
 
     // Read option value (can contain spaces)
     while (is >> token)
-        value += string(" ", value.empty() ? 0 : 1) + token;
+        value += string(" ", !value.empty()) + token;
 
     if (Options.count(name))
         Options[name] = value;
@@ -110,8 +110,8 @@ namespace {
 
     Search::LimitsType limits;
     string token;
-
-    limits.startTime = now(); // As early as possible!
+	
+	limits.startTime = now(); // As early as possible!
 
     while (is >> token)
         if (token == "searchmoves")
@@ -127,8 +127,8 @@ namespace {
         else if (token == "nodes")     is >> limits.nodes;
         else if (token == "movetime")  is >> limits.movetime;
         else if (token == "mate")      is >> limits.mate;
-        else if (token == "infinite")  limits.infinite = 1;
-        else if (token == "ponder")    limits.ponder = 1;
+        else if (token == "infinite")  limits.infinite = true;
+        else if (token == "ponder")    limits.ponder = true;
 
     Threads.start_thinking(pos, limits, SetupStates);
   }
@@ -172,7 +172,7 @@ void UCI::loop(int argc, char* argv[]) {
           Threads.main()->start_searching(true); // Could be sleeping
       }
       else if (token == "ponderhit")
-          Search::Limits.ponder = 0; // Switch to normal search
+          Search::Limits.ponder = false; // Switch to normal search
 
       else if (token == "uci")
           sync_cout << "id name " << engine_info(true)
