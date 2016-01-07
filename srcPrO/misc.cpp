@@ -114,7 +114,7 @@ const string engine_info(bool to_uci) {
   ss << (Is64Bit ? " 64" : "")
      << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
      << (to_uci  ? "\nid author ": " by ")
-     << "(c) 2015 Marco Zerbinati";
+     << "(c) 2016 Marco Zerbinati";
   ss << (to_uci ? "" : "\n\ninfo string ")
 	 << (to_uci ? "" : std::to_string(n))
 	 << (to_uci ? "" : " processor(s) detected")
