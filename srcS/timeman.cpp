@@ -35,27 +35,29 @@ namespace {
   const double StealRatio = 0.35; // However we must not steal time from remaining moves over this ratio
 
 
-  // move_importance() is a skew-logistic function based on naive statistical
-  // analysis of "how many games are still undecided after n half-moves". Game
-  // is considered "undecided" as long as neither side has >275cp advantage.
-  // Data was extracted from CCRL game database with some simple filtering criteria.
+  // move_importance() is an exponential function based on naive observation
+  // that a game is closer to be decided after each half-move. This function
+  // should be decreasing and with "nice" convexity properties.
+
+
+
 
   double move_importance(int ply) {
 
-    const double XScale = 7.64;
-    const double XShift = 58.4;
-    const double Skew   = 0.183;
+    const double PlyScale = 109.3265;
+    const double PlyGrowth = 4.0;
 
-    return pow((1 + exp((ply - XShift) / XScale)), -Skew) + DBL_MIN; // Ensure non-zero
+
+    return exp(-pow(ply / PlyScale, PlyGrowth)) + DBL_MIN; // Ensure non-zero
   }
 
   template<TimeType T>
-  int remaining(int myTime, int movesToGo, int ply, int slowMover)
+  int remaining(int myTime, int movesToGo, int ply)
   {
     const double TMaxRatio   = (T == OptimumTime ? 1 : MaxRatio);
     const double TStealRatio = (T == OptimumTime ? 0 : StealRatio);
 
-    double moveImportance = (move_importance(ply) * slowMover) / 100;
+    double moveImportance = move_importance(ply);
     double otherMovesImportance = 0;
 
     for (int i = 1; i < movesToGo; ++i)
@@ -64,7 +66,7 @@ namespace {
     double ratio1 = (TMaxRatio * moveImportance) / (TMaxRatio * moveImportance + otherMovesImportance);
     double ratio2 = (moveImportance + TStealRatio * otherMovesImportance) / (moveImportance + otherMovesImportance);
 
-    return int(myTime * std::min(ratio1, ratio2)); // Intel C++ asks an explicit cast
+    return int(myTime * std::min(ratio1, ratio2)); // Intel C++ asks for an explicit cast
   }
 
 } // namespace
@@ -83,13 +85,13 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
 {
   int minThinkingTime = Options["Minimum Thinking Time"];
   int moveOverhead    = Options["Move Overhead"];
-  int slowMover       = Options["Slow Mover"];
+
   int npmsec          = Options["nodestime"];
 
   // If we have to play in 'nodes as time' mode, then convert from time
   // to nodes, and use resulting values in time management formulas.
   // WARNING: Given npms (nodes per millisecond) must be much lower then
-  // real engine speed to avoid time losses.
+  // the real engine speed to avoid time losses.
   if (npmsec)
   {
       if (!availableNodes) // Only once at game start
@@ -118,8 +120,8 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
 
       hypMyTime = std::max(hypMyTime, 0);
 
-      int t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, ply, slowMover);
-      int t2 = minThinkingTime + remaining<MaxTime    >(hypMyTime, hypMTG, ply, slowMover);
+      int t1 = minThinkingTime + remaining<OptimumTime>(hypMyTime, hypMTG, ply);
+      int t2 = minThinkingTime + remaining<MaxTime    >(hypMyTime, hypMTG, ply);
 
       optimumTime = std::min(t1, optimumTime);
       maximumTime = std::min(t2, maximumTime);
@@ -128,5 +130,5 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;
 
-  optimumTime = std::min(optimumTime, maximumTime);
+
 }
