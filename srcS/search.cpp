@@ -882,10 +882,12 @@ namespace {
 moves_loop: // When in check search starts from here
 
     Square prevSq = to_sq((ss-1)->currentMove);
+    Square ownPrevSq = to_sq((ss-2)->currentMove);
     Move cm = thisThread->counterMoves[pos.piece_on(prevSq)][prevSq];
     const CounterMovesStats& cmh = CounterMovesHistory[pos.piece_on(prevSq)][prevSq];
+    const CounterMovesStats& fmh = CounterMovesHistory[pos.piece_on(ownPrevSq)][ownPrevSq];
 
-    MovePicker mp(pos, ttMove, depth, thisThread->history, cmh, cm, ss);
+    MovePicker mp(pos, ttMove, depth, thisThread->history, cmh, fmh, cm, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
@@ -1455,7 +1457,9 @@ moves_loop: // When in check search starts from here
     Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + 2 * depth / ONE_PLY - 2);
 
     Square prevSq = to_sq((ss-1)->currentMove);
+    Square ownPrevSq = to_sq((ss-2)->currentMove);
     CounterMovesStats& cmh = CounterMovesHistory[pos.piece_on(prevSq)][prevSq];
+    CounterMovesStats& fmh = CounterMovesHistory[pos.piece_on(ownPrevSq)][ownPrevSq];
     Thread* thisThread = pos.this_thread();
 
     thisThread->history.update(pos.moved_piece(move), to_sq(move), bonus);
@@ -1466,6 +1470,9 @@ moves_loop: // When in check search starts from here
         cmh.update(pos.moved_piece(move), to_sq(move), bonus);
     }
 
+    if (is_ok((ss-2)->currentMove))
+        fmh.update(pos.moved_piece(move), to_sq(move), bonus);
+
     // Decrease all the other played quiet moves
     for (int i = 0; i < quietsCnt; ++i)
     {
@@ -1473,6 +1480,9 @@ moves_loop: // When in check search starts from here
 
         if (is_ok((ss-1)->currentMove))
             cmh.update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
+
+        if (is_ok((ss-2)->currentMove))
+            fmh.update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
     }
 
     // Extra penalty for a quiet TT move in previous ply when it gets refuted
