@@ -268,8 +268,9 @@ void MainThread::search() {
           }
       }
 
-      if (TB::Cardinality >=  rootPos.count<ALL_PIECES>(WHITE)
-                            + rootPos.count<ALL_PIECES>(BLACK))
+      if (    TB::Cardinality >=  rootPos.count<ALL_PIECES>(WHITE)
+                                + rootPos.count<ALL_PIECES>(BLACK)
+          && !rootPos.can_castle(ANY_CASTLING))
       {
           // If the current root position is in the tablebases then RootMoves
           // contains only moves that preserve the draw or win.
@@ -703,10 +704,10 @@ namespace {
 
         if (    piecesCnt <= TB::Cardinality
             && (piecesCnt <  TB::Cardinality || depth >= TB::ProbeDepth)
-            &&  pos.rule50_count() == 0)
+            &&  pos.rule50_count() == 0
+            && !pos.can_castle(ANY_CASTLING))
         {
             int found, v = Tablebases::probe_wdl(pos, &found);
-
             if (found)
             {
                 TB::Hits++;
