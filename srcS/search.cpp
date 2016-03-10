@@ -157,7 +157,7 @@ namespace {
 
   EasyMoveManager EasyMove;
   Value DrawValue[COLOR_NB];
-  CounterMoveHistoryStats CounterMoveHistory;
+  CounterMovesHistoryStats CounterMovesHistory;
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
@@ -178,7 +178,7 @@ namespace {
 
 void Search::init() {
 
-  const bool PV=true;
+
 
   for (int imp = 0; imp <= 1; ++imp)
       for (int d = 1; d < 64; ++d)
@@ -188,12 +188,13 @@ void Search::init() {
               if (r < 0.80)
                 continue;
 
-              Reductions[!PV][imp][d][mc] = int(std::round(r)) * ONE_PLY;
-              Reductions[PV][imp][d][mc] = std::max(Reductions[!PV][imp][d][mc] - ONE_PLY, DEPTH_ZERO);
-              
-              // Increase reduction for non-PV nodes when eval is not improving
-              if (!imp && Reductions[!PV][imp][d][mc] >= 2 * ONE_PLY)
-                Reductions[!PV][imp][d][mc] += ONE_PLY;
+              Reductions[0][imp][d][mc] = int(std::round(r)) * ONE_PLY;
+              Reductions[1][imp][d][mc] = std::max(Reductions[0][imp][d][mc] - 1, 0) * ONE_PLY;
+
+
+              // Increase reduction when eval is not improving
+              if (!imp && Reductions[0][imp][d][mc] >= 2 * ONE_PLY)
+                Reductions[0][imp][d][mc] += ONE_PLY;
           }
 
   for (int d = 0; d < 16; ++d)
@@ -202,7 +203,6 @@ void Search::init() {
       FutilityMoveCounts[1][d] = int(2.9 + 1.045 * pow(d + 0.49, 1.8));
   }
 }
-
 
 /// Search::clear() resets to zero search state, to obtain reproducible results
 
@@ -376,13 +376,14 @@ finalize:
       && !Skill(Options["Skill Level"]).enabled())
   {
       for (Thread* th : Threads)
-          if (   th->completedDepth > bestThread->completedDepth
+          if (   (th->completedDepth >  bestThread->completedDepth
+              || (th->completedDepth >= bestThread->completedDepth
+              &&  th->maxPly > bestThread->maxPly))
               && th->rootMoves[0].score > bestThread->rootMoves[0].score)
               bestThread = th;
   }
 
   previousScore = bestThread->rootMoves[0].score;
-
   // Send new PV when needed
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
@@ -971,7 +972,8 @@ moves_loop: // When in check search starts from here
       {
           // Move count based pruning
           if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[improving][depth])
+              && moveCount >= FutilityMoveCounts[improving][depth]
+			  && cmh[pos.moved_piece(move)][to_sq(move)] < 10962)
               continue;
 
           // History based pruning
