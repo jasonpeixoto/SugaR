@@ -187,7 +187,7 @@ void Search::clear() {
       th->counterMoves.clear();
   }
 
-  Threads.main()->previousMoveScore = VALUE_INFINITE;
+  Threads.main()->previousScore = VALUE_INFINITE;
 }
 
 
@@ -350,7 +350,7 @@ finalize:
               bestThread = th;
   }
 
-  previousMoveScore = bestThread->rootMoves[0].score;
+  previousScore = bestThread->rootMoves[0].score;
 
   // Send new PV when needed
   if (bestThread != this)
@@ -547,16 +547,21 @@ void Thread::search() {
               if (rootDepth > 4 * ONE_PLY && multiPV == 1)
                   Time.pv_instability(mainThread->bestMoveChanges);
 
-              // Stop the search if only one legal move is available or all
-              // of the available time has been used or we matched an easyMove
+              // Stop the search if only one legal move is available, or if all
+              // of the available time has been used, or if we matched an easyMove
               // from the previous search and just did a fast verification.
+              const bool F[] = { !mainThread->failedLow,
+                                 bestValue >= mainThread->previousScore };
+
+              int improvingFactor = 640 - 160*F[0] - 126*F[1] - 124*F[0]*F[1];
+
+              bool doEasyMove =   rootMoves[0].pv[0] == easyMove
+                               && mainThread->bestMoveChanges < 0.03
+                               && Time.elapsed() > Time.available() * 25 / 206;
+
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.available() * ( 640  - 160 * !mainThread->failedLow 
-                     - 126 * (bestValue >= mainThread->previousMoveScore)  
-                     - 124 * (bestValue >= mainThread->previousMoveScore && !mainThread->failedLow))/640
-                  || ( mainThread->easyMovePlayed = ( rootMoves[0].pv[0] == easyMove
-                                                     && mainThread->bestMoveChanges < 0.03
-                                                     && Time.elapsed() > Time.available() * 25/206)))
+                  || Time.elapsed() > Time.available() * improvingFactor / 640
+                  || (mainThread->easyMovePlayed = doEasyMove))
               {
                   // If we are allowed to ponder do not stop the search now but
                   // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -1011,15 +1016,15 @@ moves_loop: // When in check search starts from here
                   && cmh[pos.piece_on(to_sq(move))][to_sq(move)] <= VALUE_ZERO))
               r += ONE_PLY;
 
-          // Decrease reduction for moves with a good history and
-          // increase reduction for moves with a bad history
-          int rDecrease = (  thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)] 
-                           + cmh[pos.piece_on(to_sq(move))][to_sq(move)]) / 14980;
-          r = std::max(DEPTH_ZERO, r - rDecrease * ONE_PLY);
+          // Decrease/increase reduction for moves with a good/bad history
+          int rHist = (  thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)]
+                       + cmh[pos.piece_on(to_sq(move))][to_sq(move)]) / 14980;
+          r = std::max(DEPTH_ZERO, r - rHist * ONE_PLY);
 
-          // Decrease reduction for moves that escape a capture. Filter out castling
-          // moves because are coded as "king captures rook" and break make_move().
-          // Also use see() instead of see_sign() because destination square is empty.
+          // Decrease reduction for moves that escape a capture. Filter out
+          // castling moves, because they are coded as "king captures rook" and
+          // hence break make_move(). Also use see() instead of see_sign(),
+          // because the destination square is empty.
           if (   r
               && type_of(move) == NORMAL
               && type_of(pos.piece_on(to_sq(move))) != PAWN

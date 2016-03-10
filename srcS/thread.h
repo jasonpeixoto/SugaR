@@ -78,7 +78,7 @@ struct MainThread : public Thread {
 
   bool easyMovePlayed, failedLow;
   double bestMoveChanges;
-  Value previousMoveScore;
+  Value previousScore;
 };
 /// ThreadPool struct handles all the threads related stuff like init, starting,
 /// parking and, most importantly, launching a thread. All the access to threads
