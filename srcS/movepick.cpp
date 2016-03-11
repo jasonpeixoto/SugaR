@@ -66,8 +66,8 @@ namespace {
 /// ordering is at the current node.
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
-                       const CounterMovesStats& cmh, const CounterMoveStats& fmh, Move cm, Search::Stack* s)
-           : pos(p), history(h), counterMovesHistory(&cmh), followupMoveHistory(&fmh), ss(s), countermove(cm), depth(d) {
+                       const CounterMovesStats& cmh, const CounterMovesStats& fmh, Move cm, Search::Stack* s)
+           : pos(p), history(h), counterMovesHistory(&cmh), followupMovesHistory(&fmh), ss(s), countermove(cm), depth(d) {
 
   assert(d > DEPTH_ZERO);
 
@@ -78,7 +78,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d,
                        const HistoryStats& h, Square s)
-           : pos(p), history(h), counterMovesHistory(nullptr), followupMoveHistory(nullptr) {
+           : pos(p), history(h), counterMovesHistory(nullptr), followupMovesHistory(nullptr) {
 
   assert(d <= DEPTH_ZERO);
 
@@ -103,7 +103,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d,
 }
 
 MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, Value th)
-           : pos(p), history(h), counterMovesHistory(nullptr), followupMoveHistory(nullptr), threshold(th) {
+           : pos(p), history(h), counterMovesHistory(nullptr), followupMovesHistory(nullptr), threshold(th) {
 
   assert(!pos.checkers());
 
@@ -141,7 +141,7 @@ void MovePicker::score<QUIETS>() {
   for (auto& m : *this)
       m.value =  history[pos.moved_piece(m)][to_sq(m)]
                + (*counterMovesHistory)[pos.moved_piece(m)][to_sq(m)]
-			   + (*followupMoveHistory)[pos.moved_piece(m)][to_sq(m)];
+			   + (*followupMovesHistory)[pos.moved_piece(m)][to_sq(m)];
 
 }
 

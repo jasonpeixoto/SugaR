@@ -80,6 +80,8 @@ struct MainThread : public Thread {
   double bestMoveChanges;
   Value previousScore;
 };
+
+
 /// ThreadPool struct handles all the threads related stuff like init, starting,
 /// parking and, most importantly, launching a thread. All the access to threads
 /// data is done through this class.
