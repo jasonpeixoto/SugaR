@@ -178,8 +178,6 @@ namespace {
 
 void Search::init() {
 
-
-
   for (int imp = 0; imp <= 1; ++imp)
       for (int d = 1; d < 64; ++d)
           for (int mc = 1; mc < 64; ++mc)
@@ -188,13 +186,13 @@ void Search::init() {
               if (r < 0.80)
                 continue;
 
-              Reductions[0][imp][d][mc] = int(std::round(r)) * ONE_PLY;
-              Reductions[1][imp][d][mc] = std::max(Reductions[0][imp][d][mc] - 1, 0) * ONE_PLY;
+              Reductions[NonPV][imp][d][mc] = int(std::round(r)) * ONE_PLY;
+              Reductions[PV][imp][d][mc] = std::max(Reductions[NonPV][imp][d][mc] - ONE_PLY, DEPTH_ZERO);
 
 
-              // Increase reduction when eval is not improving
-              if (!imp && Reductions[0][imp][d][mc] >= 2 * ONE_PLY)
-                Reductions[0][imp][d][mc] += ONE_PLY;
+              // Increase reduction for non-PV nodes when eval is not improving
+              if (!imp && Reductions[NonPV][imp][d][mc] >= 2 * ONE_PLY)
+                Reductions[NonPV][imp][d][mc] += ONE_PLY;
           }
 
   for (int d = 0; d < 16; ++d)

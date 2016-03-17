@@ -77,12 +77,12 @@ public:
   MovePicker(const MovePicker&) = delete;
   MovePicker& operator=(const MovePicker&) = delete;
 
-  MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
   MovePicker(const Position&, Move, const HistoryStats&, Value);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&, const CounterMovesStats&, const CounterMovesStats&, Move, Search::Stack*);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&,
+             const CounterMovesStats&, const CounterMovesStats&, Move, Search::Stack*);
 
   Move next_move();
-
 private:
   template<GenType> void score();
   void generate_next_stage();
