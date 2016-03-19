@@ -150,8 +150,8 @@ namespace {
   // bonuses according to which piece type attacks which one.
   // Attacks on lesser pieces which are pawn defended are not considered.
   const Score Threat[2][PIECE_TYPE_NB] = {
-{ S(0, 0), S(0, 29), S(45, 50), S(46, 50), S(74, 111), S(46,116) }, // Minor attacks
-{ S(0, 0), S(0, 22), S(43, 60), S(45, 57), S( 0,  32), S(34, 51) }  // Rook attacks
+{ S(0, 0), S(0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118) }, // Minor attacks
+{ S(0, 0), S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48) }  // Rook attacks
   };
 
   // ThreatenedByPawn[PieceType] contains a penalty according to which piece
@@ -163,14 +163,14 @@ namespace {
   // Passed[mg/eg][rank] contains midgame and endgame bonuses for passed pawns.
   // We don't use a Score because we process the two components independently.
   const Value Passed[][RANK_NB] = {
-    { V(0), V( 1), V(34), V(90), V(214), V(328) },
-    { V(7), V(14), V(37), V(63), V(134), V(189) }
+    { V(5), V( 5), V(31), V(73), V(166), V(252) },
+    { V(7), V(14), V(38), V(64), V(137), V(193) }
   };
 
   // PassedFile[File] contains a bonus according to the file of a passed pawn.
   const Score PassedFile[] = {
-    S( 12,  10), S( 3, 10), S( 1, -8), S(-27, -12),
-    S(-27, -12), S( 1, -8), S( 3, 10), S( 12,  10)
+    S(  9, 10), S( 2, 10), S( 1, -8), S(-20,-12),
+    S(-20,-12), S( 1, -8), S( 2, 10), S( 9, 10)
   };
 
   const Score ThreatenedByHangingPawn = S(80, 62);
@@ -633,7 +633,7 @@ namespace {
                 mbonus += k * rr, ebonus += k * rr;
             }
             else if (pos.pieces(Us) & blockSq)
-                mbonus += rr * 3 + r * 2 + 3, ebonus += rr + r * 2;
+                mbonus += rr + r * 2, ebonus += rr + r * 2;
         } // rr != 0
 
         if (pos.count<PAWN>(Us) < pos.count<PAWN>(Them))
