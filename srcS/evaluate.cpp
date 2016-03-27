@@ -499,12 +499,11 @@ namespace {
 
     Bitboard b, weak, defended, safeThreats;
     Score score = SCORE_ZERO;
-    
-    // Loose enemies
-    if (    (pos.pieces(Them, PAWN, ROOK) | pos.pieces(Them, KNIGHT, BISHOP))
-    	 & ~ei.attackedBy[Us][ALL_PIECES] 
-    	 & ~ei.attackedBy[Them][ALL_PIECES])
-    	score += LooseEnemies;
+
+    // Small bonus if the opponent has loose pawns or pieces
+    if (   (pos.pieces(Them) ^ pos.pieces(Them, QUEEN, KING))
+        & ~(ei.attackedBy[Us][ALL_PIECES] | ei.attackedBy[Them][ALL_PIECES]))
+        score += LooseEnemies;
 
     // Non-pawn enemies attacked by a pawn
     weak = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & ei.attackedBy[Us][PAWN];
