@@ -179,7 +179,7 @@ ifeq ($(COMP),mingw)
 	endif
 
 	CXXFLAGS += -Wextra -Wshadow
-	LDFLAGS += -static
+	#LDFLAGS += -static
 endif
 
 ifeq ($(COMP),icc)
@@ -224,6 +224,7 @@ endif
 ifdef COMPCXX
 	CXX=$(COMPCXX)
 endif
+
 ### On mingw use Windows threads, otherwise POSIX
 ifneq ($(comp),mingw)
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
