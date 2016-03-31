@@ -259,18 +259,27 @@ inline Bitboard attacks_bb(Piece pc, Square s, Bitboard occupied) {
 
 #if defined(__GNUC__)
 
-inline Square lsb(Bitboard b) { return Square(__builtin_ctzll(b)); }
-inline Square msb(Bitboard b) { return Square(63 - __builtin_clzll(b)); }
+inline Square lsb(Bitboard b) {
+  assert(b);
+  return Square(__builtin_ctzll(b));
+}
+
+inline Square msb(Bitboard b) {
+  assert(b);
+  return Square(63 - __builtin_clzll(b));
+}
 
 #elif defined(_WIN64) && defined(_MSC_VER)
 
 inline Square lsb(Bitboard b) {
+  assert(b);
   unsigned long idx;
   _BitScanForward64(&idx, b);
   return (Square) idx;
 }
 
 inline Square msb(Bitboard b) {
+  assert(b);
   unsigned long idx;
   _BitScanReverse64(&idx, b);
   return (Square) idx;
@@ -279,7 +288,6 @@ inline Square msb(Bitboard b) {
 #else
 
 #define NO_BSF // Fallback on software implementation for other cases
-
 Square lsb(Bitboard b);
 Square msb(Bitboard b);
 
