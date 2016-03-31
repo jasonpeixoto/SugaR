@@ -135,15 +135,15 @@ namespace {
   // Outpost[knight/bishop][supported by pawn] contains bonuses for knights and
   // bishops outposts, bigger if outpost piece is supported by a pawn.
   const Score Outpost[][2] = {
-    { S(42,11), S(63,17) }, // Knights
-    { S(18, 5), S(27, 8) }  // Bishops
+    { S(43,11), S(65,20) }, // Knights
+    { S(20, 3), S(29, 8) }  // Bishops
   };
 
   // ReachableOutpost[knight/bishop][supported by pawn] contains bonuses for knights and
   // bishops which can reach a outpost square in one move, bigger if outpost square is supported by a pawn.
   const Score ReachableOutpost[][2] = {
-    { S(21, 5), S(31, 8) }, // Knights
-    { S( 8, 2), S(13, 4) }  // Bishops
+    { S(21, 5), S(35, 8) }, // Knights
+    { S( 8, 0), S(14, 4) }  // Bishops
   };
 
   // Threat[minor/rook][attacked PieceType] contains
@@ -173,22 +173,22 @@ namespace {
     S(-20,-12), S( 1, -8), S( 2, 10), S( 9, 10)
   };
 
-  const Score ThreatenedByHangingPawn = S(80, 62);
+  const Score ThreatenedByHangingPawn = S(71, 61);
 
   // Assorted bonuses and penalties used by evaluation
   const Score KingOnOne          = S( 3, 66);
   const Score KingOnMany         = S( 8,133);
   const Score Tempo              = S(24, 11); 
-  const Score RookOnPawn         = S( 7, 27);
-  const Score RookOnOpenFile     = S(43, 21);
-  const Score RookOnSemiOpenFile = S(19, 10);
+  const Score RookOnPawn         = S( 8, 24);
+  const Score RookOnOpenFile     = S(45, 20);
+  const Score RookOnSemiOpenFile = S(20, 7);
   const Score BishopPawns        = S( 8, 12);
   const Score MinorBehindPawn    = S(16,  0);
   const Score TrappedRook        = S(92,  0);
   const Score LooseEnemies       = S( 0, 25);
   const Score Unstoppable        = S( 0, 20);
         Score Hanging            = S(48, 27);
-  const Score PawnAttackThreat   = S(31, 26);
+  const Score PawnAttackThreat   = S(38, 22);
   const Score Checked            = S(20, 20);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
@@ -219,10 +219,10 @@ namespace {
 
   // Penalties for enemy's safe checks
   const int QueenContactCheck = 89;
-  const int QueenCheck        = 50;
+  const int QueenCheck        = 52;
   const int RookCheck         = 45;
-  const int BishopCheck       = 6;
-  const int KnightCheck       = 14;
+  const int BishopCheck       = 5;
+  const int KnightCheck       = 17;
 
   // KingDanger[attackUnits] contains the actual king danger weighted
   // scores, indexed by a calculated integer number.
