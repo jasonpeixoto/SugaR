@@ -179,7 +179,7 @@ ifeq ($(COMP),mingw)
 	endif
 
 	CXXFLAGS += -Wextra -Wshadow
-	#LDFLAGS += -static
+	LDFLAGS += -static
 endif
 
 ifeq ($(COMP),icc)
