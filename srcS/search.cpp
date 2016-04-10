@@ -171,12 +171,9 @@ namespace {
   void update_stats(const Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
   void check_time();
 
-
-  int SugaR_reductionThreshold = 6;
-  int SugaR_reductionFactor = 17;
-  TUNE(SugaR_reductionFactor, SetRange(2,12), SugaR_reductionThreshold);
-  
 } // namespace
+
+
 /// Search::init() is called during startup to initialize various lookup tables
 
 void Search::init() {
@@ -722,7 +719,6 @@ namespace {
             && !pos.can_castle(ANY_CASTLING))
         {
             int found, v = Tablebases::probe_wdl(pos, &found);
-
             if (found)
             {
                 TB::Hits++;
@@ -923,7 +919,6 @@ moves_loop: // When in check search starts from here
 
       ss->moveCount = ++moveCount;
 
-
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
           sync_cout << "info depth " << depth / ONE_PLY
                     << " currmove " << UCI::move(move, pos.is_chess960())
@@ -1056,17 +1051,10 @@ moves_loop: // When in check search starts from here
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
           doFullDepthSearch = (value > alpha && r != DEPTH_ZERO);
-
-          // Before going to full depth, check whether we fail high with half the reduction
-          if (doFullDepthSearch && r >= SugaR_reductionThreshold * ONE_PLY){
-              d = std::max(newDepth - SugaR_reductionFactor * r / 32, ONE_PLY);
-              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
-              doFullDepthSearch = (value > alpha && r != DEPTH_ZERO);
-          }
-
       }
       else
           doFullDepthSearch = !PvNode || moveCount > 1;
+
       // Step 16. Full depth search, when LMR is skipped or fails high
       if (doFullDepthSearch)
           value = newDepth <   ONE_PLY ?
