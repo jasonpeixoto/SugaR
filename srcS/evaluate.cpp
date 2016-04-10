@@ -22,7 +22,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "bitcount.h"
+#include "bitboard.h"
 #include "evaluate.h"
 #include "material.h"
 #include "pawns.h"
@@ -263,7 +263,7 @@ namespace {
     {
         ei.kingRing[Them] = b | shift_bb<Down>(b);
         b &= ei.attackedBy[Us][PAWN];
-        ei.kingAttackersCount[Us] = b ? popcount<Max15>(b) : 0;
+        ei.kingAttackersCount[Us] = b ? popcount(b) : 0;
         ei.kingAdjacentZoneAttacksCount[Us] = ei.kingAttackersWeight[Us] = 0;
     }
     else
@@ -304,7 +304,7 @@ namespace {
             ei.kingAttackersWeight[Us] += KingAttackWeights[Pt];
             bb = b & ei.attackedBy[Them][KING];
             if (bb)
-                ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
+                ei.kingAdjacentZoneAttacksCount[Us] += popcount(bb);
         }
 
         if (Pt == QUEEN)
@@ -312,8 +312,7 @@ namespace {
                    | ei.attackedBy[Them][BISHOP]
                    | ei.attackedBy[Them][ROOK]);
 
-        int mob = Pt != QUEEN ? popcount<Max15>(b & mobilityArea[Us])
-                              : popcount<Full >(b & mobilityArea[Us]);
+        int mob = popcount(b & mobilityArea[Us]);
 
         mobility[Us] += MobilityBonus[Pt][mob];
 
@@ -361,7 +360,7 @@ namespace {
             {
                 Bitboard alignedPawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
                 if (alignedPawns)
-                    score += popcount<Max15>(alignedPawns) * RookOnPawn;
+                    score += RookOnPawn * popcount(alignedPawns);
             }
 
             // Bonus when on an open or semi-open file
@@ -430,7 +429,7 @@ namespace {
         // the pawn shelter (current 'score' value).
         attackUnits =  std::min(72, ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
                      +  9 * ei.kingAdjacentZoneAttacksCount[Them]
-                     + 27 * popcount<Max15>(undefended)
+                     + 27 * popcount(undefended)
                      + 11 * !!ei.pinnedPieces[Us]
                      - 64 * !pos.count<QUEEN>(Them)
                      - mg_value(score) / 8;
@@ -447,9 +446,7 @@ namespace {
                 | ei.attackedBy[Them][KING];
 
             if (b)
-                attackUnits +=  QueenContactCheck
-                              * popcount<Max15>(b)
-                              * (Them == pos.side_to_move() ? 2 : 1);
+                attackUnits += QueenContactCheck * popcount(b);
         }
 
         // Analyse the enemy's safe distance checks for sliders and knights
@@ -566,7 +563,7 @@ namespace {
 
         b = weak & ~ei.attackedBy[Them][ALL_PIECES];
         if (b)
-            score += Hanging * popcount<Max15>(b);
+            score += Hanging * popcount(b);
 
         b = weak & ei.attackedBy[Us][KING];
         if (b)
@@ -586,7 +583,7 @@ namespace {
        & ~ei.attackedBy[Us][PAWN];
 
     if (b)
-        score += popcount<Max15>(b) * PawnAttackThreat;
+        score += PawnAttackThreat * popcount(b);
 
     if (Trace)
         Tracing::write(Tracing::THREAT, Us, score);
@@ -705,7 +702,7 @@ namespace {
     assert(unsigned(safe >> (Us == WHITE ? 32 : 0)) == 0);
 
     // ...count safe + (behind & safe) with a single popcount
-    int bonus = popcount<Full>((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
+    int bonus = popcount((Us == WHITE ? safe << 32 : safe >> 32) | (behind & safe));
     int weight =  pos.count<KNIGHT>(Us) + pos.count<BISHOP>(Us)
                 + pos.count<KNIGHT>(Them) + pos.count<BISHOP>(Them);
 
