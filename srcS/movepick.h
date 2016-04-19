@@ -77,12 +77,12 @@ public:
   MovePicker(const MovePicker&) = delete;
   MovePicker& operator=(const MovePicker&) = delete;
 
-  MovePicker(const Position&, Move, const HistoryStats&, Value);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&,
-             const CounterMovesStats&, const CounterMovesStats&, Move, Search::Stack*);
+  MovePicker(const Position&, Move, Value);
+  MovePicker(const Position&, Move, Depth, Square);
+  MovePicker(const Position&, Move, Depth, Search::Stack*);
 
   Move next_move();
+
 private:
   template<GenType> void score();
   void generate_next_stage();
@@ -90,10 +90,7 @@ private:
   ExtMove* end() { return endMoves; }
 
   const Position& pos;
-  const HistoryStats& history;
-  const CounterMovesStats* counterMovesHistory;
-  const CounterMovesStats* followupMovesHistory;
-  Search::Stack* ss;
+  const Search::Stack* ss;
   Move countermove;
   Depth depth;
   Move ttMove;
