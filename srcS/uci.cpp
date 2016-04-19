@@ -37,10 +37,10 @@ namespace {
   // FEN string of the initial position, normal chess
   const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-  // Stack to keep track of the position states along the setup moves (from the
+  // A list to keep track of the position states along the setup moves (from the
   // start position to the position just before the search starts). Needed by
   // 'draw by repetition' detection.
-  Search::StateStackPtr SetupStates;
+  StateListPtr States(new std::vector<StateInfo>(1));
 
 
   // position() is called when engine receives the "position" UCI command.
@@ -66,16 +66,17 @@ namespace {
     else
         return;
 
-    pos.set(fen, Options["UCI_Chess960"], Threads.main());
-    SetupStates = Search::StateStackPtr(new std::stack<StateInfo>);
+    States = StateListPtr(new std::vector<StateInfo>(1));
+    pos.set(fen, Options["UCI_Chess960"], &States->back(), Threads.main());
 
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
     {
-        SetupStates->push(StateInfo());
-        pos.do_move(m, SetupStates->top(), pos.gives_check(m, CheckInfo(pos)));
+        States->push_back(StateInfo());
+        pos.do_move(m, States->back(), pos.gives_check(m, CheckInfo(pos)));
     }
   }
+
 
 
   // setoption() is called when engine receives the "setoption" UCI command. The
@@ -130,7 +131,7 @@ namespace {
         else if (token == "infinite")  limits.infinite = true;
         else if (token == "ponder")    limits.ponder = true;
 
-    Threads.start_thinking(pos, limits, SetupStates);
+    Threads.start_thinking(pos, States, limits);
   }
 
 } // namespace
@@ -144,8 +145,11 @@ namespace {
 
 void UCI::loop(int argc, char* argv[]) {
 
-  Position pos(StartFEN, false, Threads.main()); // The root position
+
+  Position pos;
   string token, cmd;
+
+  pos.set(StartFEN, false, &States->back(), Threads.main());
 
   for (int i = 1; i < argc; ++i)
       cmd += std::string(argv[i]) + " ";
@@ -235,11 +239,13 @@ string UCI::value(Value v) {
 }
 
 
+
 /// UCI::square() converts a Square to a string in algebraic notation (g1, a7, etc.)
 
 std::string UCI::square(Square s) {
   return std::string{ char('a' + file_of(s)), char('1' + rank_of(s)) };
 }
+
 
 
 /// UCI::move() converts a Move to a string in coordinate notation (g1f3, a7a8q).

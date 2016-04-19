@@ -20,8 +20,6 @@
 #define SEARCH_H_INCLUDED
 
 #include <atomic>
-#include <memory>  // For std::unique_ptr
-#include <stack>
 #include <vector>
 
 #include "misc.h"
@@ -63,7 +61,7 @@ struct RootMove {
   std::vector<Move> pv;
 };
 
-typedef std::vector<RootMove> RootMoveVector;
+typedef std::vector<RootMove> RootMoves;
 
 /// LimitsType struct stores information sent by GUI about available time to
 /// search the current move, maximum depth/time, if we are in analysis mode or
@@ -72,8 +70,8 @@ typedef std::vector<RootMove> RootMoveVector;
 struct LimitsType {
 
   LimitsType() { // Init explicitly due to broken value-initialization of non POD in MSVC
-    nodes = time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] = npmsec = movestogo =
-    depth = movetime = mate = infinite = ponder = 0;
+    nodes = time[WHITE] = time[BLACK] = inc[WHITE] = inc[BLACK] =
+    npmsec = movestogo = depth = movetime = mate = infinite = ponder = 0;
   }
 
   bool use_time_management() const {
@@ -93,11 +91,8 @@ struct SignalsType {
   std::atomic_bool stop, stopOnPonderhit;
 };
 
-typedef std::unique_ptr<std::stack<StateInfo>> StateStackPtr;
-
 extern SignalsType Signals;
 extern LimitsType Limits;
-extern StateStackPtr SetupStates;
 
 void init();
 void clear();
