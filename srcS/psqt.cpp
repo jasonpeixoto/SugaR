@@ -16,7 +16,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
+
 #include "types.h"
+
+Value PieceValue[PHASE_NB][PIECE_NB] = {
+{ VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
+{ VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
 
 namespace PSQT {
 
@@ -108,8 +114,9 @@ void init() {
 
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
-          int edgeDistance = file_of(s) < FILE_E ? file_of(s) : FILE_H - file_of(s);
-          psq[BLACK][pt][~s] = -(psq[WHITE][pt][s] = v + Bonus[pt][rank_of(s)][edgeDistance]);
+          File f = std::min(file_of(s), FILE_H - file_of(s));
+          psq[WHITE][pt][ s] = v + Bonus[pt][rank_of(s)][f];
+          psq[BLACK][pt][~s] = -psq[WHITE][pt][s];
       }
   }
 }

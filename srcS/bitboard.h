@@ -59,16 +59,6 @@ const Bitboard Rank8BB = Rank1BB << (8 * 7);
 
 extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 
-extern Bitboard  RookMasks  [SQUARE_NB];
-extern Bitboard  RookMagics [SQUARE_NB];
-extern Bitboard* RookAttacks[SQUARE_NB];
-extern unsigned  RookShifts [SQUARE_NB];
-
-extern Bitboard  BishopMasks  [SQUARE_NB];
-extern Bitboard  BishopMagics [SQUARE_NB];
-extern Bitboard* BishopAttacks[SQUARE_NB];
-extern unsigned  BishopShifts [SQUARE_NB];
-
 extern Bitboard SquareBB[SQUARE_NB];
 extern Bitboard FileBB[FILE_NB];
 extern Bitboard RankBB[RANK_NB];
@@ -223,6 +213,13 @@ template<> inline int distance<Rank>(Square x, Square y) { return distance(rank_
 template<PieceType Pt>
 inline unsigned magic_index(Square s, Bitboard occupied) {
 
+  extern Bitboard RookMasks[SQUARE_NB];
+  extern Bitboard RookMagics[SQUARE_NB];
+  extern unsigned RookShifts[SQUARE_NB];
+  extern Bitboard BishopMasks[SQUARE_NB];
+  extern Bitboard BishopMagics[SQUARE_NB];
+  extern unsigned BishopShifts[SQUARE_NB];
+
   Bitboard* const Masks  = Pt == ROOK ? RookMasks  : BishopMasks;
   Bitboard* const Magics = Pt == ROOK ? RookMagics : BishopMagics;
   unsigned* const Shifts = Pt == ROOK ? RookShifts : BishopShifts;
@@ -240,11 +237,14 @@ inline unsigned magic_index(Square s, Bitboard occupied) {
 
 template<PieceType Pt>
 inline Bitboard attacks_bb(Square s, Bitboard occupied) {
+
+  extern Bitboard* RookAttacks[SQUARE_NB];
+  extern Bitboard* BishopAttacks[SQUARE_NB];
+
   return (Pt == ROOK ? RookAttacks : BishopAttacks)[s][magic_index<Pt>(s, occupied)];
 }
 
 inline Bitboard attacks_bb(Piece pc, Square s, Bitboard occupied) {
-
   switch (type_of(pc))
   {
   case BISHOP: return attacks_bb<BISHOP>(s, occupied);
@@ -253,7 +253,6 @@ inline Bitboard attacks_bb(Piece pc, Square s, Bitboard occupied) {
   default    : return StepAttacksBB[pc][s];
   }
 }
-
 
 
 /// popcount() counts the number of non-zero bits in a bitboard
@@ -285,6 +284,7 @@ inline int popcount(Bitboard b) {
 /// lsb() and msb() return the least/most significant bit in a non-zero bitboard
 
 #if defined(__GNUC__)
+
 inline Square lsb(Bitboard b) {
   assert(b);
   return Square(__builtin_ctzll(b));
@@ -314,6 +314,7 @@ inline Square msb(Bitboard b) {
 #else
 
 #define NO_BSF // Fallback on software implementation for other cases
+
 Square lsb(Bitboard b);
 Square msb(Bitboard b);
 

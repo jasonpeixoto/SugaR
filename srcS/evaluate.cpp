@@ -422,7 +422,7 @@ namespace {
                         | ei.attackedBy[Us][QUEEN]);
 
         // ... and those which are not defended at all in the larger king ring
-        b =   ei.attackedBy[Them][ALL_PIECES] & ~ei.attackedBy[Us][ALL_PIECES] 
+        b =  ei.attackedBy[Them][ALL_PIECES] & ~ei.attackedBy[Us][ALL_PIECES]
             & ei.kingRing[Us] & ~pos.pieces(Them);
 
         // Initialize the 'attackUnits' variable, which is used later on as an
