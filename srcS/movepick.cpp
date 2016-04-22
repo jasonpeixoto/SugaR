@@ -49,7 +49,7 @@ namespace {
 
   // pick_best() finds the best move in the range (begin, end) and moves it to
   // the front. It's faster than sorting all the moves in advance when there
-  // are few moves e.g. the possible captures.
+  // are few moves, e.g., the possible captures.
   Move pick_best(ExtMove* begin, ExtMove* end)
   {
       std::swap(*begin, *std::max_element(begin, end));
@@ -126,9 +126,9 @@ template<>
 void MovePicker::score<CAPTURES>() {
   // Winning and equal captures in the main search are ordered by MVV, preferring
   // captures near our home rank. Surprisingly, this appears to perform slightly
-  // better than SEE based move ordering: exchanging big pieces before capturing
+  // better than SEE-based move ordering: exchanging big pieces before capturing
   // a hanging piece probably helps to reduce the subtree size.
-  // In main search we want to push captures with negative SEE values to the
+  // In the main search we want to push captures with negative SEE values to the
   // badCaptures[] array, but instead of doing it now we delay until the move
   // has been picked up, saving some SEE calls in case we get a cutoff.
   for (auto& m : *this)
@@ -154,9 +154,9 @@ void MovePicker::score<QUIETS>() {
 
 template<>
 void MovePicker::score<EVASIONS>() {
-  // Try winning and equal captures captures ordered by MVV/LVA, then non-captures
-  // ordered by history value, then bad-captures and quiet moves with a negative
-  // SEE ordered by SEE value.
+  // Try winning and equal captures ordered by MVV/LVA, then non-captures ordered
+  // by history value, then bad captures and quiet moves with a negative SEE ordered
+  // by SEE value.
   const HistoryStats& history = pos.this_thread()->history;
   Value see;
 
@@ -172,7 +172,7 @@ void MovePicker::score<EVASIONS>() {
 }
 
 
-/// generate_next_stage() generates, scores and sorts the next bunch of moves,
+/// generate_next_stage() generates, scores, and sorts the next bunch of moves
 /// when there are no more moves to try for the current stage.
 
 void MovePicker::generate_next_stage() {
