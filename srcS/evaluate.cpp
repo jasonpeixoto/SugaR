@@ -264,7 +264,7 @@ namespace {
     {
         ei.kingRing[Them] = b | shift_bb<Down>(b);
         b &= ei.attackedBy[Us][PAWN];
-        ei.kingAttackersCount[Us] = b ? popcount<Max15>(b) : 0;
+        ei.kingAttackersCount[Us] = popcount(b);
         ei.kingAdjacentZoneAttacksCount[Us] = ei.kingAttackersWeight[Us] = 0;
     }
     else
@@ -276,8 +276,6 @@ namespace {
 
   template<PieceType Pt, Color Us, bool Trace>
   Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility, Bitboard* mobilityArea) {
-
-
 
     Bitboard b, bb;
     Square s;
@@ -305,9 +303,7 @@ namespace {
         {
             ei.kingAttackersCount[Us]++;
             ei.kingAttackersWeight[Us] += KingAttackWeights[Pt];
-            bb = b & ei.attackedBy[Them][KING];
-            if (bb)
-                ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
+            ei.kingAdjacentZoneAttacksCount[Us] += popcount(b & ei.attackedBy[Them][KING]);
         }
 
         if (Pt == QUEEN)
@@ -361,11 +357,7 @@ namespace {
         {
             // Bonus for aligning with enemy pawns on the same rank/file
             if (relative_rank(Us, s) >= RANK_5)
-            {
-                Bitboard alignedPawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
-                if (alignedPawns)
-                    score += popcount<Max15>(alignedPawns) * RookOnPawn;
-            }
+                score += RookOnPawn * popcount(pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s]);
 
             // Bonus when on an open or semi-open file
             if (ei.pi->semiopen_file(Us, file_of(s)))
@@ -448,10 +440,7 @@ namespace {
                 | ei.attackedBy[Them][BISHOP] | ei.attackedBy[Them][ROOK]
                 | ei.attackedBy[Them][KING];
 
-            if (b)
-                attackUnits +=  QueenContactCheck
-                              * popcount<Max15>(b)
-                              * (Them == pos.side_to_move() ? 2 : 1);
+            attackUnits += QueenContactCheck * popcount(b);
         }
 
         // Analyse the enemy's safe distance checks for sliders and knights
@@ -566,9 +555,7 @@ namespace {
         while (b)
             score += Threat[Rook ][type_of(pos.piece_on(pop_lsb(&b)))];
 
-        b = weak & ~ei.attackedBy[Them][ALL_PIECES];
-        if (b)
-            score += Hanging * popcount<Max15>(b);
+        score += Hanging * popcount(weak & ~ei.attackedBy[Them][ALL_PIECES]);
 
         b = weak & ei.attackedBy[Us][KING];
         if (b)
@@ -587,8 +574,7 @@ namespace {
        &  pos.pieces(Them)
        & ~ei.attackedBy[Us][PAWN];
 
-    if (b)
-        score += popcount<Max15>(b) * PawnAttackThreat;
+    score += PawnAttackThreat * popcount(b);
 
     if (Trace)
         Tracing::write(Tracing::THREAT, Us, score);
@@ -895,6 +881,18 @@ namespace {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   // Tracing functions
 
   double Tracing::to_cp(Value v) { return double(v) / PawnValueEg; }
@@ -955,6 +953,7 @@ namespace {
 
 
 
+
 namespace Eval {
 
   // Init spsa params
@@ -970,6 +969,21 @@ namespace Eval {
   Value evaluate(const Position& pos) {
     return do_evaluate<false>(pos);
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
