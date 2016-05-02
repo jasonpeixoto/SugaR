@@ -22,16 +22,13 @@
 #include <iomanip>
 #include <sstream>
 
-#include "bitcount.h"
+#include "bitboard.h"
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
-
-#define MEMALIGN(a, b, c) a = _aligned_malloc (c, b) 
-#define ALIGNED_FREE(x) _aligned_free (x) // BRICE
 
 using std::string;
 
@@ -55,7 +52,7 @@ const string PieceToChar(" PNBRQK  pnbrqk");
 // from the bitboards and scan for new X-ray attacks behind it.
 
 template<int Pt>
-PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stmAttackers,
+PieceType min_attacker(const Bitboard* bb, Square to, Bitboard stmAttackers,
                        Bitboard& occupied, Bitboard& attackers) {
 
   Bitboard b = stmAttackers & bb[Pt];
@@ -75,7 +72,7 @@ PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stm
 }
 
 template<>
-PieceType min_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&) {
+PieceType min_attacker<KING>(const Bitboard*, Square, Bitboard, Bitboard&, Bitboard&) {
   return KING; // No need to update bitboards: it is the last cycle
 }
 
@@ -206,6 +203,7 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   st = si;
 
   ss >> std::noskipws;
+
   // 1. Piece placement
   while ((ss >> token) && !isspace(token))
   {
@@ -282,6 +280,8 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
 
   return *this;
 }
+
+
 /// Position::set_castling_right() is a helper function used to set castling
 /// rights given the corresponding color and the rook starting square.
 
@@ -499,7 +499,8 @@ bool Position::legal(Move m, Bitboard pinned) const {
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
-  return   !(pinned & from)
+  return   !pinned
+        || !(pinned & from)
         ||  aligned(from, to_sq(m), square<KING>(us));
 }
 
@@ -592,7 +593,8 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
       return true;
 
   // Is there a discovered check?
-  if (   (ci.dcCandidates & from)
+  if (    ci.dcCandidates
+      && (ci.dcCandidates & from)
       && !aligned(from, to, ci.ksq))
       return true;
 
@@ -1109,13 +1111,11 @@ bool Position::pos_is_ok(int* failedStep) const {
                   && relative_rank(sideToMove, ep_square()) != RANK_6))
               return false;
 
-
       if (step == King)
           if (   std::count(board, board + SQUARE_NB, W_KING) != 1
               || std::count(board, board + SQUARE_NB, B_KING) != 1
               || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
               return false;
-
 
       if (step == Bitboards)
       {
@@ -1141,7 +1141,7 @@ bool Position::pos_is_ok(int* failedStep) const {
           for (Color c = WHITE; c <= BLACK; ++c)
               for (PieceType pt = PAWN; pt <= KING; ++pt)
               {
-                  if (pieceCount[c][pt] != popcount<Full>(pieces(c, pt)))
+                  if (pieceCount[c][pt] != popcount(pieces(c, pt)))
                       return false;
 
                   for (int i = 0; i < pieceCount[c][pt];  ++i)

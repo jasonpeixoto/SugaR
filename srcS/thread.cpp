@@ -1,6 +1,6 @@
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2008-2016 Marco Costalba, Joona Kiiski, Tord Romstad
 
   SugaR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by

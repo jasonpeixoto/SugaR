@@ -29,7 +29,6 @@
 template<typename T, bool CM> struct Stats;
 typedef Stats<Value, true> CounterMoveStats;
 
-
 namespace Search {
 
 /// Stack struct keeps track of the information we need to remember from nodes

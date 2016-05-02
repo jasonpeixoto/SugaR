@@ -78,7 +78,6 @@ namespace {
   }
 
 
-
   // setoption() is called when engine receives the "setoption" UCI command. The
   // function updates the UCI option ("name") to the given value ("value").
 
@@ -90,11 +89,11 @@ namespace {
 
     // Read option name (can contain spaces)
     while (is >> token && token != "value")
-        name += string(" ", !name.empty()) + token;
+        name += string(" ", name.empty() ? 0 : 1) + token;
 
     // Read option value (can contain spaces)
     while (is >> token)
-        value += string(" ", !value.empty()) + token;
+        value += string(" ", value.empty() ? 0 : 1) + token;
 
     if (Options.count(name))
         Options[name] = value;
@@ -111,8 +110,8 @@ namespace {
 
     Search::LimitsType limits;
     string token;
-	
-	limits.startTime = now(); // As early as possible!
+
+    limits.startTime = now(); // As early as possible!
 
     while (is >> token)
         if (token == "searchmoves")
@@ -128,8 +127,8 @@ namespace {
         else if (token == "nodes")     is >> limits.nodes;
         else if (token == "movetime")  is >> limits.movetime;
         else if (token == "mate")      is >> limits.mate;
-        else if (token == "infinite")  limits.infinite = true;
-        else if (token == "ponder")    limits.ponder = true;
+        else if (token == "infinite")  limits.infinite = 1;
+        else if (token == "ponder")    limits.ponder = 1;
 
     Threads.start_thinking(pos, States, limits);
   }
@@ -144,7 +143,6 @@ namespace {
 /// In addition to the UCI ones, also some additional debug commands are supported.
 
 void UCI::loop(int argc, char* argv[]) {
-
 
   Position pos;
   string token, cmd;
@@ -176,7 +174,7 @@ void UCI::loop(int argc, char* argv[]) {
           Threads.main()->start_searching(true); // Could be sleeping
       }
       else if (token == "ponderhit")
-          Search::Limits.ponder = false; // Switch to normal search
+          Search::Limits.ponder = 0; // Switch to normal search
 
       else if (token == "uci")
           sync_cout << "id name " << engine_info(true)
@@ -187,7 +185,6 @@ void UCI::loop(int argc, char* argv[]) {
       {
           Search::clear();
           Time.availableNodes = 0;
-		  Time.newGame = true;
       }
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
       else if (token == "go")         go(pos, is);
@@ -239,13 +236,11 @@ string UCI::value(Value v) {
 }
 
 
-
 /// UCI::square() converts a Square to a string in algebraic notation (g1, a7, etc.)
 
 std::string UCI::square(Square s) {
   return std::string{ char('a' + file_of(s)), char('1' + rank_of(s)) };
 }
-
 
 
 /// UCI::move() converts a Move to a string in coordinate notation (g1f3, a7a8q).

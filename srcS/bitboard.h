@@ -245,6 +245,7 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) {
 }
 
 inline Bitboard attacks_bb(Piece pc, Square s, Bitboard occupied) {
+
   switch (type_of(pc))
   {
   case BISHOP: return attacks_bb<BISHOP>(s, occupied);
@@ -282,7 +283,6 @@ inline int popcount(Bitboard b) {
 
 
 /// lsb() and msb() return the least/most significant bit in a non-zero bitboard
-
 #if defined(__GNUC__)
 
 inline Square lsb(Bitboard b) {

@@ -20,7 +20,6 @@
 #include <cassert>
 
 #include "bitboard.h"
-#include "bitcount.h"
 #include "endgame.h"
 #include "movegen.h"
 
@@ -98,7 +97,6 @@ namespace {
     string fen =  sides[0] + char(8 - sides[0].length() + '0') + "/8/8/8/8/8/8/"
                 + sides[1] + char(8 - sides[1].length() + '0') + " w - - 0 10";
 
-				
     StateInfo st;
     return Position().set(fen, false, &st, nullptr).material_key();
   }

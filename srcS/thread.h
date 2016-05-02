@@ -96,7 +96,6 @@ struct ThreadPool : public std::vector<Thread*> {
   void read_uci_options();
   int64_t nodes_searched();
 
-
 private:
   StateListPtr setupStates;
 };

@@ -170,9 +170,12 @@ namespace {
   void update_stats(const Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);
   void check_time();
 
+
+  int SugaR_reductionThreshold = 6;
+  int SugaR_reductionFactor = 17;
+  TUNE(SugaR_reductionFactor, SetRange(2,12), SugaR_reductionThreshold);
+  
 } // namespace
-
-
 /// Search::init() is called during startup to initialize various lookup tables
 
 void Search::init() {
@@ -252,8 +255,7 @@ template uint64_t Search::perft<true>(Position&, Depth);
 /// the UCI 'go' command. It searches from the root position and outputs the "bestmove".
 
 void MainThread::search() {
-  static PolyglotBook book; // Defined static to initialize the PRNG only once
-
+static PolyglotBook book; // Defined static to initialize the PRNG only once
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
 
@@ -337,6 +339,7 @@ void MainThread::search() {
   // the available ones before exiting.
   if (Limits.npmsec)
       Time.availableNodes += Limits.inc[us] - Threads.nodes_searched();
+
 finalize:
   // When we reach the maximum depth, we can arrive here without a raise of
   // Signals.stop. However, if we are pondering or in an infinite search,
@@ -1017,11 +1020,6 @@ moves_loop: // When in check search starts from here
           Depth r = reduction<PvNode>(improving, depth, moveCount);
           Value hValue = thisThread->history[pos.piece_on(to_sq(move))][to_sq(move)];
           Value cmhValue = cmh[pos.piece_on(to_sq(move))][to_sq(move)];
-          
-          const CounterMoveStats* fm = (ss - 2)->counterMoves;
-          const CounterMoveStats* fm2 = (ss - 4)->counterMoves;
-          Value fmValue = (fm ? (*fm)[pos.piece_on(to_sq(move))][to_sq(move)] : VALUE_ZERO);
-          Value fm2Value = (fm2 ? (*fm2)[pos.piece_on(to_sq(move))][to_sq(move)] : VALUE_ZERO);
 
           // Increase reduction for cut nodes and moves with a bad history
           if (   (!PvNode && cutNode)
@@ -1029,7 +1027,7 @@ moves_loop: // When in check search starts from here
               r += ONE_PLY;
 
           // Decrease/increase reduction for moves with a good/bad history
-          int rHist = (hValue + cmhValue + fmValue + fm2Value) / 20940;
+          int rHist = (hValue + cmhValue) / 14980;
           r = std::max(DEPTH_ZERO, r - rHist * ONE_PLY);
 
           // Decrease reduction for moves that escape a capture. Filter out
@@ -1047,6 +1045,14 @@ moves_loop: // When in check search starts from here
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
           doFullDepthSearch = (value > alpha && r != DEPTH_ZERO);
+
+          // Before going to full depth, check whether we fail high with half the reduction
+          if (doFullDepthSearch && r >= SugaR_reductionThreshold * ONE_PLY){
+              d = std::max(newDepth - SugaR_reductionFactor * r / 32, ONE_PLY);
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+              doFullDepthSearch = (value > alpha && r != DEPTH_ZERO);
+          }
+
       }
       else
           doFullDepthSearch = !PvNode || moveCount > 1;

@@ -16,8 +16,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-extern int large_use; // MZ
-
 #include <fstream>
 #include <iostream>
 #include <istream>
@@ -27,7 +25,6 @@ extern int large_use; // MZ
 #include "position.h"
 #include "search.h"
 #include "thread.h"
-#include "tt.h"
 #include "uci.h"
 
 using namespace std;
@@ -146,10 +143,12 @@ void benchmark(const Position& current, istream& is) {
   uint64_t nodes = 0;
   TimePoint elapsed = now();
   Position pos;
+
   for (size_t i = 0; i < fens.size(); ++i)
   {
       StateListPtr states(new std::deque<StateInfo>(1));
       pos.set(fens[i], Options["UCI_Chess960"], &states->back(), Threads.main());
+
       cerr << "\nPosition: " << i + 1 << '/' << fens.size() << endl;
 
       if (limitType == "perft")
@@ -166,10 +165,8 @@ void benchmark(const Position& current, istream& is) {
 
   elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
 
-  dbg_print(); // Just before to exit
-  
-if(!large_use) // MZ
-	cerr << "****\n";
+  dbg_print(); // Just before exiting
+
   cerr << "\n==========================="
        << "\nTotal time (ms) : " << elapsed
        << "\nNodes searched  : " << nodes

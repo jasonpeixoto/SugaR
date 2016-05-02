@@ -83,8 +83,8 @@ namespace {
     return (u * 0x0101U) >> 8;
   }
 }
-
 #ifdef NO_BSF
+
 /// Software fall-back of lsb() and msb() for CPU lacking hardware support
 
 Square lsb(Bitboard b) {
