@@ -185,11 +185,12 @@ namespace {
   const Score BishopPawns        = S( 8, 12);
   const Score MinorBehindPawn    = S(16,  0);
   const Score TrappedRook        = S(92,  0);
+  const Score SafeCheck          = S(20, 20);
+  const Score OtherCheck         = S(10, 10);
   const Score LooseEnemies       = S( 0, 25);
   const Score Unstoppable        = S( 0, 20);
         Score Hanging            = S(48, 27);
   const Score PawnAttackThreat   = S(38, 22);
-  const Score Checked            = S(20, 20);
 
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
@@ -394,9 +395,10 @@ namespace {
   template<Color Us, bool Trace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    const Color Them = (Us == WHITE ? BLACK   : WHITE);
+    const Square  Up = (Us == WHITE ? DELTA_N : DELTA_S);
 
-    Bitboard undefended, b, b1, b2, safe;
+    Bitboard undefended, b, b1, b2, safe, other;
     int attackUnits;
     const Square ksq = pos.square<KING>(Us);
 
@@ -442,43 +444,44 @@ namespace {
             attackUnits += QueenContactCheck * popcount(b);
         }
 
-        // Analyse the enemy's safe distance checks for sliders and knights
-        safe = ~(ei.attackedBy[Us][ALL_PIECES] | pos.pieces(Them));
 
-        b1 = pos.attacks_from<ROOK  >(ksq) & safe;
-        b2 = pos.attacks_from<BISHOP>(ksq) & safe;
+        // Analyse the safe enemy's checks which are possible on next move...
+        safe  = ~(ei.attackedBy[Us][ALL_PIECES] | pos.pieces(Them));
+
+        // ... and some other potential checks, only requiring the square to be
+        // safe from pawn-attacks, and not being occupied by a blocked pawn.
+        other = ~(   ei.attackedBy[Us][PAWN]
+                  | (pos.pieces(Them, PAWN) & shift_bb<Up>(pos.pieces(PAWN))));
+
+        b1 = pos.attacks_from<ROOK  >(ksq);
+        b2 = pos.attacks_from<BISHOP>(ksq);
 
         // Enemy queen safe checks
-        b = (b1 | b2) & ei.attackedBy[Them][QUEEN];
-        if (b)
-        {
-            attackUnits += QueenCheck;
-            score -= Checked;
-        }
+        if ((b1 | b2) & ei.attackedBy[Them][QUEEN] & safe)
+            attackUnits += QueenCheck, score -= SafeCheck;
 
-        // Enemy rooks safe checks
-        b = b1 & ei.attackedBy[Them][ROOK];
-        if (b)
-        {
-            attackUnits += RookCheck;
-            score -= Checked;
-        }
+        // Enemy rooks safe and other checks
+        if (b1 & ei.attackedBy[Them][ROOK] & safe)
+            attackUnits += RookCheck, score -= SafeCheck;
 
-        // Enemy bishops safe checks
-        b = b2 & ei.attackedBy[Them][BISHOP];
-        if (b)
-        {
-            attackUnits += BishopCheck;
-            score -= Checked;
-        }
+        else if (b1 & ei.attackedBy[Them][ROOK] & other)
+            score -= OtherCheck;
 
-        // Enemy knights safe checks
-        b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT] & safe;
-        if (b)
-        {
-            attackUnits += KnightCheck;
-            score -= Checked;
-        }
+        // Enemy bishops safe and other checks
+        if (b2 & ei.attackedBy[Them][BISHOP] & safe)
+            attackUnits += BishopCheck, score -= SafeCheck;
+
+        else if (b2 & ei.attackedBy[Them][BISHOP] & other)
+            score -= OtherCheck;
+
+        // Enemy knights safe and other checks
+        b = pos.attacks_from<KNIGHT>(ksq) & ei.attackedBy[Them][KNIGHT];
+        if (b & safe)
+            attackUnits += KnightCheck, score -= SafeCheck;
+
+        else if (b & other)
+            score -= OtherCheck;
+		
         // To index KingDanger[] attackUnits must be in [0, 99] range
         attackUnits = std::min(399, std::max(0, attackUnits));
 
