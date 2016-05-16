@@ -69,6 +69,8 @@ namespace {
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[2][16];  // [improving][depth]
   Depth Reductions[2][2][64][64]; // [pv][improving][depth][moveNumber]
+  
+  int CMH = 128;
 
   template <bool PvNode> Depth reduction(bool i, Depth d, int mn) {
     return Reductions[PvNode][i][std::min(d, 63 * ONE_PLY)][std::min(mn, 63)];
@@ -173,11 +175,13 @@ namespace {
 
   int SugaR_reductionThreshold = 6;
   int SugaR_reductionFactor = 17;
-  TUNE(SugaR_reductionFactor, SetRange(2,12), SugaR_reductionThreshold);
-  
-} // namespace
-/// Search::init() is called during startup to initialize various lookup tables
 
+  int LMR = 20000;
+
+} // namespace
+
+
+/// Search::init() is called during startup to initialize various lookup tables
 void Search::init() {
 
   for (int imp = 0; imp <= 1; ++imp)
@@ -201,9 +205,9 @@ void Search::init() {
       FutilityMoveCounts[0][d] = int(2.4 + 0.773 * pow(d + 0.00, 1.8));
       FutilityMoveCounts[1][d] = int(2.9 + 1.045 * pow(d + 0.49, 1.8));
   }
+  
+  CMH = int(Options["CMH"]);
 }
-
-
 /// Search::clear() resets search state to zero, to obtain reproducible results
 
 void Search::clear() {
@@ -1028,11 +1032,11 @@ moves_loop: // When in check search starts from here
           Value fm2Value = (fm2 ? (*fm2)[pos.piece_on(to_sq(move))][to_sq(move)] : VALUE_ZERO);
 
           // Increase reduction for cut nodes and moves with a bad history
-          if (!PvNode && cutNode)
+          if (   (!PvNode && cutNode)
+			  || (hValue < VALUE_ZERO && cmhValue <= VALUE_ZERO))
               r += ONE_PLY;
-
           // Decrease/increase reduction for moves with a good/bad history
-          int rHist = (hValue + cmhValue + fmValue + fm2Value - 10000) / 20000;
+          int rHist = (hValue + cmhValue + fmValue + fm2Value) / LMR;
           r = std::max(DEPTH_ZERO, r - rHist * ONE_PLY);
 
           // Decrease reduction for moves that escape a capture. Filter out
