@@ -93,7 +93,7 @@ void init(OptionsMap& o) {
   o["CMH"]                      << Option(128, 0, 512, on_search);
   o["LMR"]                      << Option(20000, 0, 40000, on_search);
   o["SugaR_reductionThreshold"] << Option(6, 2, 12, on_search);
-  o["SugaR_reductionThreshold"] << Option(17, 0, 34, on_search);
+  o["SugaR_reductionFactor"]    << Option(17, 0, 34, on_search);
 } 
 
 
