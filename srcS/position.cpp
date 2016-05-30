@@ -160,9 +160,7 @@ void Position::init() {
 Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Thread* th) {
 /*
    A FEN string defines a particular position using only the ASCII character set.
-
    A FEN string contains six fields separated by a space. The fields are:
-
    1) Piece placement (from white's perspective). Each rank is described, starting
       with rank 8 and ending with rank 1. Within each rank, the contents of each
       square are described from file A through file H. Following the Standard
@@ -171,23 +169,18 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
       letters ("PNBRQK") whilst Black uses lowercase ("pnbrqk"). Blank squares are
       noted using digits 1 through 8 (the number of blank squares), and "/"
       separates ranks.
-
    2) Active color. "w" means white moves next, "b" means black.
-
    3) Castling availability. If neither side can castle, this is "-". Otherwise,
       this has one or more letters: "K" (White can castle kingside), "Q" (White
       can castle queenside), "k" (Black can castle kingside), and/or "q" (Black
       can castle queenside).
-
    4) En passant target square (in algebraic notation). If there's no en passant
       target square, this is "-". If a pawn has just made a 2-square move, this
       is the position "behind" the pawn. This is recorded regardless of whether
       there is a pawn in position to make an en passant capture.
-
    5) Halfmove clock. This is the number of halfmoves since the last pawn advance
       or capture. This is used to determine if a draw can be claimed under the
       fifty-move rule.
-
    6) Fullmove number. The number of the full move. It starts at 1, and is
       incremented after Black's move.
 */
@@ -418,28 +411,28 @@ Phase Position::game_phase() const {
 }
 
 
-/// Position::check_blockers() returns a bitboard of all the pieces with color
-/// 'c' that are blocking check on the king with color 'kingColor'. A piece
-/// blocks a check if removing that piece from the board would result in a
-/// position where the king is in check. A check blocking piece can be either a
-/// pinned or a discovered check piece, according if its color 'c' is the same
-/// or the opposite of 'kingColor'.
+/// Position::slider_blockers() returns a bitboard of all the pieces in 'target' that
+/// are blocking attacks on the square 's' from 'sliders'. A piece blocks a slider
+/// if removing that piece from the board would result in a position where square 's'
+/// is attacked. For example, a king-attack blocking piece can be either a pinned or
+/// a discovered check piece, according if its color is the opposite or the same of
+/// the color of the slider.
 
-Bitboard Position::check_blockers(Color c, Color kingColor) const {
+Bitboard Position::slider_blockers(Bitboard target, Bitboard sliders, Square s) const {
 
   Bitboard b, pinners, result = 0;
-  Square ksq = square<KING>(kingColor);
 
-  // Pinners are sliders that give check when a pinned piece is removed
-  pinners = (  (pieces(  ROOK, QUEEN) & PseudoAttacks[ROOK  ][ksq])
-             | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq])) & pieces(~kingColor);
+  // Pinners are sliders that attack 's' when a pinned piece is removed
+  pinners = (  (PseudoAttacks[ROOK  ][s] & pieces(QUEEN, ROOK))
+             | (PseudoAttacks[BISHOP][s] & pieces(QUEEN, BISHOP))) & sliders;
 
   while (pinners)
   {
-      b = between_bb(ksq, pop_lsb(&pinners)) & pieces();
+      b = between_bb(s, pop_lsb(&pinners)) & pieces();
 
       if (!more_than_one(b))
-          result |= b & pieces(c);
+
+          result |= b & target;
   }
   return result;
 }
