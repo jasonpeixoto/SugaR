@@ -30,7 +30,7 @@ namespace {
 
 /// Version number. If Version is left empty, then compile date in the format
 /// DD-MM-YY and show in engine_info.
-static const string Version = "SugaR SE ";
+const string Version = " ";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -103,7 +103,7 @@ const string engine_info(bool to_uci) {
 
   unsigned int n = std::thread::hardware_concurrency();
 
-  ss << " " << Version << setfill('0');
+  ss << "SugaR SE" << Version << setfill('0');
 
   if (Version.empty())
   {
