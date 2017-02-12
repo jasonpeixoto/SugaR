@@ -1,6 +1,8 @@
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
-  Copyright (C) 2008-2016 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
+  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   SugaR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,12 +29,14 @@ class Position;
 
 namespace Eval {
 
-const Value Tempo = Value(20); // Must be visible to search
+const Value Tempo = Value(20);                          // Must be visible to search
+extern Color rootColor;                                 // Must be visible to search
+extern long Optimism[STRATEGY_NB][TERM_NB][COLOR_NB];   // Must be visible to search
 
-void init();
-Value evaluate(const Position& pos);
 std::string trace(const Position& pos);
 
+template<bool DoTrace = false>
+Value evaluate(const Position& pos);
 }
 
 #endif // #ifndef EVALUATE_H_INCLUDED

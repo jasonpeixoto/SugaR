@@ -1,6 +1,8 @@
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
-  Copyright (C) 2008-2016 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
+  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   SugaR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,9 +52,9 @@ namespace {
   }
 
   template<TimeType T>
-  int remaining(int myTime, int movesToGo, int ply, int slowMover)
-  {
-    const double TMaxRatio   = (T == OptimumTime ? 1 : MaxRatio);
+  int remaining(int myTime, int movesToGo, int ply, int slowMover) {
+
+  const double TMaxRatio   = (T == OptimumTime ? 1 : MaxRatio);
     const double TStealRatio = (T == OptimumTime ? 0 : StealRatio);
 
     double moveImportance = (move_importance(ply) * slowMover) / 100;
@@ -79,8 +81,8 @@ namespace {
 ///  inc >  0 && movestogo == 0 means: x basetime + z increment
 ///  inc >  0 && movestogo != 0 means: x moves in y minutes + z increment
 
-void TimeManagement::init(Search::LimitsType& limits, Color us, int ply)
-{
+void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
+
   int minThinkingTime = Options["Minimum Thinking Time"];
   int moveOverhead    = Options["Move Overhead"];
   int slowMover       = Options["Slow Mover"];

@@ -1,6 +1,8 @@
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
-  Copyright (C) 2008-2016 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
+  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
+  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   SugaR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,7 +21,6 @@
 #include <iostream>
 
 #include "bitboard.h"
-#include "evaluate.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
@@ -27,33 +28,26 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
-void SETUP_PRIVILEGES();
-void FREE_MEM(void *);
+namespace PSQT {
+  void init();
+}
 
 int main(int argc, char* argv[]) {
-
   std::cout << engine_info() << std::endl;
-  #ifndef BENCH
-    SETUP_PRIVILEGES();
-  #endif
+
   UCI::init(Options);
-  TT.resize(Options["Hash"]);
   PSQT::init();
   Bitboards::init();
   Position::init();
   Bitbases::init();
   Search::init();
-  Eval::init();
   Pawns::init();
   Threads.init();
   Tablebases::init(Options["SyzygyPath"]);
+  TT.resize(Options["Hash"]);
 
   UCI::loop(argc, argv);
 
-  if (large_use) {
-    FREE_MEM(TT.mem);  
-    TT.mem = nullptr;
-  }
-
   Threads.exit();
+  return 0;
 }
