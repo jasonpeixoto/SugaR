@@ -1056,7 +1056,7 @@ moves_loop: // When in check search starts from here
               else if (ss->history < VALUE_ZERO && (ss-1)->history > VALUE_ZERO)
                   r += ONE_PLY;
 
-              int positionBonus = -75*(pos.game_phase() - 20);
+              int positionBonus = pos.game_phase() < 64 ? -75*(pos.game_phase() - 64): -4800;
 
               // Decrease/increase reduction for moves with a good/bad history
               r = std::max(DEPTH_ZERO, (r / ONE_PLY + (positionBonus - ss->history) / 20000) * ONE_PLY);
