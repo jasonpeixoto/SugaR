@@ -26,6 +26,7 @@
 #include <sstream>
 
 #include "book.h"
+#include "tzbook.h"
 #include "evaluate.h"
 #include "misc.h"
 #include "movegen.h"
@@ -180,6 +181,7 @@ namespace {
   void update_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, Value bonus);
   void check_time();
 
+
 } // namespace
 
 
@@ -314,12 +316,26 @@ void MainThread::search() {
               goto finalize;
           }
       }
+      Move bookMove = MOVE_NONE;
 
-      for (Thread* th : Threads)
-          if (th != this)
-              th->start_searching();
+      if (!Limits.infinite && !Limits.mate)
+          bookMove = tzbook.probe2(rootPos);
 
-      Thread::search(); // Let's start searching!
+      if (bookMove && std::count(rootMoves.begin(), rootMoves.end(), bookMove))
+      {
+          std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), bookMove));
+          for (Thread* th : Threads)
+              if (th != this)
+                 std::swap(th->rootMoves[0], *std::find(th->rootMoves.begin(), th->rootMoves.end(), bookMove));
+      }
+      else
+      {
+          for (Thread* th : Threads)
+              if (th != this)
+                  th->start_searching();
+
+          Thread::search(); // Let's start searching!
+      }
   }
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
@@ -1682,11 +1698,4 @@ void Tablebases::filter_root_moves(Position& pos, Search::RootMoves& rootMoves) 
         TB::Score =  TB::Score > VALUE_DRAW ?  VALUE_MATE - MAX_PLY - 1
                    : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
                                             :  VALUE_DRAW;
-
-
-
-
-
-
-
 }
