@@ -155,11 +155,12 @@ ifeq ($(COMP),gcc)
 	ifeq ($(ARCH),armv7)
 		ifeq ($(OS),Android)
 			CXXFLAGS += -m$(bits)
+		        LDFLAGS += -m$(bits)
 		endif
 	else
 		CXXFLAGS += -m$(bits)
+		LDFLAGS += -m$(bits)
 	endif
-
 	ifneq ($(KERNEL),Darwin)
 	   LDFLAGS += -Wl,--no-as-needed
 	endif
