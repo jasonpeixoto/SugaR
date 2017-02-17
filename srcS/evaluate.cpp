@@ -228,29 +228,6 @@ namespace {
     ei.attackedBy[Them][ALL_PIECES] |= b;
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
     {
@@ -261,7 +238,6 @@ namespace {
     else
         ei.kingRing[Them] = ei.kingAttackersCount[Us] = 0;
   }
-
 
   // evaluate_pieces() assigns bonuses and penalties to the pieces of a given
   // color and type.
