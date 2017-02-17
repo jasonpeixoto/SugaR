@@ -276,25 +276,22 @@ void MainThread::search() {
   std::memset(Optimism, 0, sizeof(Optimism));
 
   // Distortion values of eval when we are winning
-  Optimism[WINNING][MATERIAL ][ us] =  Options["winning_optimism_pieces_us"];
-  Optimism[WINNING][PAWN     ][ us] =  Options["winning_optimism_pawns_us"];
-  Optimism[WINNING][MOBILITY ][ us] =  Options["winning_optimism_mobility_us"];
+  Optimism[WINNING][MATERIAL ][ us] =  0;  //["winning_optimism_pieces_us"];
+  Optimism[WINNING][PAWN     ][ us] =  0;  //["winning_optimism_pawns_us"];
+  Optimism[WINNING][MOBILITY ][ us] =  0;  //["winning_optimism_mobility_us"];
 
-  Optimism[WINNING][MATERIAL ][~us] =  Options["winning_optimism_pieces_them"];
-
-  Optimism[WINNING][PAWN     ][~us] =  Options["winning_optimism_pawns_them"];
-  Optimism[WINNING][MOBILITY ][~us] =  Options["winning_optimism_mobility_them"];
+  Optimism[WINNING][MATERIAL ][~us] =  0;  //["winning_optimism_pieces_them"];
+  Optimism[WINNING][PAWN     ][~us] =  0;  //["winning_optimism_pawns_them"];
+  Optimism[WINNING][MOBILITY ][~us] =  0;  //["winning_optimism_mobility_them"];
 
   // Distortion values of eval when we are losing
   Optimism[LOSING][MATERIAL ][ us] =  Options["losing_optimism_pieces_us"];
   Optimism[LOSING][PAWN     ][ us] =  Options["losing_optimism_pawns_us"];
-
   Optimism[LOSING][MOBILITY ][ us] =  Options["losing_optimism_mobility_us"];
 
-  Optimism[LOSING][MATERIAL ][~us] =  Options["losing_optimism_pieces_them"];
-
-  Optimism[LOSING][PAWN     ][~us] =  Options["losing_optimism_pawns_them"];
-  Optimism[LOSING][MOBILITY ][~us] =  Options["losing_optimism_mobility_them"];
+  Optimism[LOSING][MATERIAL ][~us] =  0;  //["losing_optimism_pieces_them"];
+  Optimism[LOSING][PAWN     ][~us] =  0;  //["losing_optimism_pawns_them"];
+  Optimism[LOSING][MOBILITY ][~us] =  0;  //["losing_optimism_mobility_them"];
 
 
   if (rootMoves.empty())

@@ -86,22 +86,9 @@ void init(OptionsMap& o) {
   o["Book Move2 Probability"]<< Option(0, 0, 100, on_book_move2_prob);
   o["BookPath"]              << Option("<empty>", on_brainbook_path);
   
-  o["winning_optimism_pieces_us"]    << Option(6, -100, 100);
-  o["winning_optimism_pawns_us"]     << Option(2, -100, 100);
-  o["winning_optimism_mobility_us"]  << Option(0, -100, 100);
-  
-  o["winning_optimism_pieces_them"]    << Option(0, -100, 100);
-  o["winning_optimism_pawns_them"]     << Option(1, -100, 100);
-  o["winning_optimism_mobility_them"]  << Option(-12, -100, 100);
-  
-  o["losing_optimism_pieces_us"]    << Option(-17, -100, 100);
-  o["losing_optimism_pawns_us"]     << Option(5, -100, 100);
-  o["losing_optimism_mobility_us"]  << Option(-9, -100, 100);
-  
-  o["losing_optimism_pieces_them"]    << Option(0, -100, 100);
-  o["losing_optimism_pawns_them"]     << Option(5, -100, 100);
-  o["losing_optimism_mobility_them"]  << Option(-5, -100, 100);
-  
+  o["losing_optimism_pieces_us"]    << Option(5, -100, 100);
+  o["losing_optimism_pawns_us"]     << Option(-2, -100, 100);
+  o["losing_optimism_mobility_us"]  << Option(2, -100, 100);
  
 }
 
