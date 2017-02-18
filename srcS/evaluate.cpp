@@ -237,6 +237,8 @@ namespace {
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
 
 
+
+
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
     {
@@ -585,9 +587,13 @@ namespace {
        & ~ei.attackedBy[Us][PAWN];
 
     score += ThreatByPawnPush * popcount(b);
-    
+
+
     // Entry points in the opponent camp
-    b = ei.attackedBy2[Us] & ~ei.attackedBy[Them][PAWN] & OpponentCamp;
+    b =  ~pos.pieces() 
+       & ei.attackedBy2[Us] 
+       & ~(ei.attackedBy[Them][PAWN] | ei.attackedBy2[Them])
+       & OpponentCamp;
     score += EntryPoints * popcount(b);
 
     if (DoTrace)
