@@ -201,6 +201,8 @@ namespace {
   const Score ThreatByPawnPush    = S(38, 22);
   const Score HinderPassedPawn    = S( 7,  0);
   const Score Unstoppable         = S( 0, 20);
+  const Score EntryPoints         = S( 4,  0);
+
   // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
   // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
   // happen in Chess960 games.
@@ -233,6 +235,7 @@ namespace {
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.square<KING>(Them));
     ei.attackedBy[Them][ALL_PIECES] |= b;
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
+
 
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
@@ -509,6 +512,9 @@ namespace {
     const Square Right      = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     const Bitboard TRank2BB = (Us == WHITE ? Rank2BB    : Rank7BB);
     const Bitboard TRank7BB = (Us == WHITE ? Rank7BB    : Rank2BB);
+    const Bitboard OpponentCamp = 
+        (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB | Rank7BB | Rank8BB
+                     : Rank5BB | Rank4BB | Rank3BB | Rank2BB | Rank1BB);
 
     Bitboard b, weak, defended, safeThreats;
     Score score = SCORE_ZERO;
@@ -579,6 +585,10 @@ namespace {
        & ~ei.attackedBy[Us][PAWN];
 
     score += ThreatByPawnPush * popcount(b);
+    
+    // Entry points in the opponent camp
+    b = ei.attackedBy2[Us] & ~ei.attackedBy[Them][PAWN] & OpponentCamp;
+    score += EntryPoints * popcount(b);
 
     if (DoTrace)
         Trace::add(THREAT, Us, score);
