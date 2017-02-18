@@ -252,6 +252,15 @@ namespace {
 
 
 
+
+
+
+
+
+
+
+
+
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
     {
@@ -531,7 +540,7 @@ namespace {
         (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB | Rank7BB | Rank8BB
                      : Rank5BB | Rank4BB | Rank3BB | Rank2BB | Rank1BB);
 
-    Bitboard b, weak, defended, safeThreats;
+    Bitboard b, bb, weak, defended, safeThreats;
     Score score = SCORE_ZERO;
 
     // Non-pawn enemies attacked by a pawn
@@ -602,10 +611,13 @@ namespace {
     score += ThreatByPawnPush * popcount(b);
 
     // Entry points in the opponent camp
-    int x = popcount(   ~pos.pieces()
-                      &  OpponentCamp
-                      &  ei.attackedBy2[Us]
-                      & ~(ei.attackedBy[Them][PAWN] | ei.attackedBy2[Them]));
+    b =   ~ei.attackedBy[Them][ALL_PIECES]
+        & (  ei.attackedBy[Us][KNIGHT] | ei.attackedBy[Us][BISHOP]
+           | ei.attackedBy[Us][ROOK]   | ei.attackedBy[Us][QUEEN]);
+    bb =   ei.attackedBy2[Us] 
+        & ~(ei.attackedBy[Them][PAWN] | ei.attackedBy2[Them]);
+            
+    int x = popcount(~pos.pieces() & OpponentCamp & (b | bb));
     score += make_score(2 * x * (x - 1), 0);
 
     if (DoTrace)
