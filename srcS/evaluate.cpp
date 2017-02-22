@@ -199,6 +199,7 @@ namespace {
   const Score OtherCheck          = S(10, 10);
   const Score CloseEnemies        = S( 7,  0);
   const Score PawnlessFlank       = S(20, 80);
+  const Score LooseEnemies        = S( 0, 25);
   const Score ThreatByHangingPawn = S(71, 61);
   const Score ThreatByRank        = S(16,  3);
   const Score Hanging             = S(48, 27);
@@ -238,20 +239,6 @@ namespace {
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.square<KING>(Them));
     ei.attackedBy[Them][ALL_PIECES] |= b;
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
@@ -546,6 +533,11 @@ namespace {
 
     Bitboard b, bb, weak, defended, safeThreats;
     Score score = SCORE_ZERO;
+
+    // Small bonus if the opponent has loose pieces
+    if (   (pos.pieces(Them, BISHOP, KNIGHT) | pos.pieces(Them, ROOK))
+        & ~(ei.attackedBy[Us][ALL_PIECES] | ei.attackedBy[Them][ALL_PIECES]))
+        score += LooseEnemies;
 
     // Non-pawn enemies attacked by a pawn
     weak = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & ei.attackedBy[Us][PAWN];
