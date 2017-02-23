@@ -236,9 +236,14 @@ namespace {
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
     const Square Down = (Us == WHITE ? SOUTH : NORTH);
 
+
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.square<KING>(Them));
     ei.attackedBy[Them][ALL_PIECES] |= b;
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
+
+
+
+
 
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
@@ -531,7 +536,7 @@ namespace {
         (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB | Rank7BB | Rank8BB
                      : Rank5BB | Rank4BB | Rank3BB | Rank2BB | Rank1BB);
 
-    Bitboard b, bb, weak, defended, safeThreats;
+    Bitboard b, bb, weak, defended, stronglyProtected, safeThreats;
     Score score = SCORE_ZERO;
 
     // Small bonus if the opponent has loose pieces
@@ -556,12 +561,15 @@ namespace {
             score += ThreatBySafePawn[type_of(pos.piece_on(pop_lsb(&safeThreats)))];
     }
 
-    // Non-pawn enemies defended by a pawn
-    defended = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & ei.attackedBy[Them][PAWN];
+    stronglyProtected =  ei.attackedBy[Them][PAWN] 
+                       | (ei.attackedBy2[Them] & ~ei.attackedBy2[Us]);
 
-    // Enemies not defended by a pawn and under our attack
+    // Non-pawn enemies strongly defended
+    defended = (pos.pieces(Them) ^ pos.pieces(Them, PAWN)) & stronglyProtected;
+
+    // Enemies not strongly defended and under our attack
     weak =   pos.pieces(Them)
-          & ~ei.attackedBy[Them][PAWN]
+          & ~stronglyProtected
           &  ei.attackedBy[Us][ALL_PIECES];
 
     // Add a bonus according to the kind of attacking pieces
