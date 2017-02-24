@@ -161,6 +161,7 @@ ifeq ($(COMP),gcc)
 		CXXFLAGS += -m$(bits)
 		LDFLAGS += -m$(bits)
 	endif
+
 	ifneq ($(KERNEL),Darwin)
 	   LDFLAGS += -Wl,--no-as-needed
 	endif
@@ -465,6 +466,7 @@ profileclean:
 
 default:
 	help
+
 ### ==========================================================================
 ### Section 5. Private targets
 ### ==========================================================================

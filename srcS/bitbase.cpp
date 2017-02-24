@@ -73,6 +73,7 @@ namespace {
 } // namespace
 
 
+
 bool Bitbases::probe(Square wksq, Square wpsq, Square bksq, Color us) {
 
   assert(file_of(wpsq) <= FILE_D);
@@ -80,6 +81,7 @@ bool Bitbases::probe(Square wksq, Square wpsq, Square bksq, Color us) {
   unsigned idx = index(us, bksq, wksq, wpsq);
   return KPKBitbase[idx / 32] & (1 << (idx & 0x1F));
 }
+
 
 
 void Bitbases::init() {
@@ -102,6 +104,7 @@ void Bitbases::init() {
       if (db[idx] == WIN)
           KPKBitbase[idx / 32] |= 1 << (idx & 0x1F);
 }
+
 
 
 namespace {
