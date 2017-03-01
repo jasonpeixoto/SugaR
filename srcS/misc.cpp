@@ -52,7 +52,7 @@ namespace {
 
 /// Version number. If Version is left empty, then compile date in the format
 /// DD-MM-YY and show in engine_info.
-static const string Version = " ";
+const string Version = "";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -125,7 +125,7 @@ const string engine_info(bool to_uci) {
 
   unsigned int n = std::thread::hardware_concurrency();
 
-  ss << "SugaR XPrO 1.0" << Version << setfill('0');
+  ss << "SugaR " << Version << setfill('0');
 
 
   if (Version.empty())
@@ -134,7 +134,7 @@ const string engine_info(bool to_uci) {
       ss << setw(2) << day << setw(2) << (1 + months.find(month) / 4) << year.substr(2);
   }
 
-  ss << (Is64Bit ? " 64" : "32")
+  ss << (Is64Bit ? " 64" : " 32")
      << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
      << (to_uci  ? "\nid author ": " by ")
      << "Marco Zerbinati (c) 2017\n"

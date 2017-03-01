@@ -1,3 +1,4 @@
+
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -26,6 +27,7 @@
 #include <sstream>
 
 #include "book.h"
+#include "tzbook.h"
 #include "evaluate.h"
 #include "misc.h"
 #include "movegen.h"
@@ -135,34 +137,18 @@ namespace {
     Move pv[3];
   };
 
-  // Set of rows with half bits set to 1 and half to 0. It is used to allocate
-  // the search depths across the threads.
-  typedef std::vector<int> Row;
+  // skip half of the plies in blocks depending on the helper thread idx.
+  bool skip_ply(int idx, int ply) {
 
-  const Row HalfDensity[] = {
-    {0, 1},
-    {1, 0},
-    {0, 0, 1, 1},
-    {0, 1, 1, 0},
-    {1, 1, 0, 0},
-    {1, 0, 0, 1},
-    {0, 0, 0, 1, 1, 1},
-    {0, 0, 1, 1, 1, 0},
-    {0, 1, 1, 1, 0, 0},
-    {1, 1, 1, 0, 0, 0},
-    {1, 1, 0, 0, 0, 1},
-    {1, 0, 0, 0, 1, 1},
-    {0, 0, 0, 0, 1, 1, 1, 1},
-    {0, 0, 0, 1, 1, 1, 1, 0},
-    {0, 0, 1, 1, 1, 1, 0 ,0},
-    {0, 1, 1, 1, 1, 0, 0 ,0},
-    {1, 1, 1, 1, 0, 0, 0 ,0},
-    {1, 1, 1, 0, 0, 0, 0 ,1},
-    {1, 1, 0, 0, 0, 0, 1 ,1},
-    {1, 0, 0, 0, 0, 1, 1 ,1},
-  };
+    idx = (idx - 1) % 20 + 1; // cycle after 20 threads.
 
-  const size_t HalfDensitySize = std::extent<decltype(HalfDensity)>::value;
+    // number of successive plies to skip, depending on idx.
+    int ones = 1;
+    while (ones * (ones + 1) < idx)
+        ones++;
+
+    return ((ply + idx - 1) / ones - ones) % 2 == 0;
+  }
 
   EasyMoveManager EasyMove;
   Value DrawValue[COLOR_NB];
@@ -274,25 +260,22 @@ void MainThread::search() {
   std::memset(Optimism, 0, sizeof(Optimism));
 
   // Distortion values of eval when we are winning
-  Optimism[WINNING][MATERIAL ][ us] =  Options["winning_optimism_pieces_us"];
-  Optimism[WINNING][PAWN     ][ us] =  Options["winning_optimism_pawns_us"];
-  Optimism[WINNING][MOBILITY ][ us] =  Options["winning_optimism_mobility_us"];
+  Optimism[WINNING][MATERIAL ][ us] =  5;  //["winning_optimism_pieces_us"];
+  Optimism[WINNING][PAWN     ][ us] = -2;  //["winning_optimism_pawns_us"];
+  Optimism[WINNING][MOBILITY ][ us] =  2;  //["winning_optimism_mobility_us"];
 
-  Optimism[WINNING][MATERIAL ][~us] =  Options["winning_optimism_pieces_them"];
-
-  Optimism[WINNING][PAWN     ][~us] =  Options["winning_optimism_pawns_them"];
-  Optimism[WINNING][MOBILITY ][~us] =  Options["winning_optimism_mobility_them"];
+  Optimism[WINNING][MATERIAL ][~us] =  0;  //["winning_optimism_pieces_them"];
+  Optimism[WINNING][PAWN     ][~us] =  0;  //["winning_optimism_pawns_them"];
+  Optimism[WINNING][MOBILITY ][~us] =  0;  //["winning_optimism_mobility_them"];
 
   // Distortion values of eval when we are losing
   Optimism[LOSING][MATERIAL ][ us] =  Options["losing_optimism_pieces_us"];
   Optimism[LOSING][PAWN     ][ us] =  Options["losing_optimism_pawns_us"];
-
   Optimism[LOSING][MOBILITY ][ us] =  Options["losing_optimism_mobility_us"];
 
-  Optimism[LOSING][MATERIAL ][~us] =  Options["losing_optimism_pieces_them"];
-
-  Optimism[LOSING][PAWN     ][~us] =  Options["losing_optimism_pawns_them"];
-  Optimism[LOSING][MOBILITY ][~us] =  Options["losing_optimism_mobility_them"];
+  Optimism[LOSING][MATERIAL ][~us] =  0;  //["losing_optimism_pieces_them"];
+  Optimism[LOSING][PAWN     ][~us] =  0;  //["losing_optimism_pawns_them"];
+  Optimism[LOSING][MOBILITY ][~us] =  0;  //["losing_optimism_mobility_them"];
 
 
   if (rootMoves.empty())
@@ -314,12 +297,26 @@ void MainThread::search() {
               goto finalize;
           }
       }
+      Move bookMove = MOVE_NONE;
 
-      for (Thread* th : Threads)
-          if (th != this)
-              th->start_searching();
+      if (!Limits.infinite && !Limits.mate)
+          bookMove = tzbook.probe2(rootPos);
 
-      Thread::search(); // Let's start searching!
+      if (bookMove && std::count(rootMoves.begin(), rootMoves.end(), bookMove))
+      {
+          std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), bookMove));
+          for (Thread* th : Threads)
+              if (th != this)
+                 std::swap(th->rootMoves[0], *std::find(th->rootMoves.begin(), th->rootMoves.end(), bookMove));
+      }
+      else
+      {
+          for (Thread* th : Threads)
+              if (th != this)
+                  th->start_searching();
+
+          Thread::search(); // Let's start searching!
+      }
   }
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
@@ -421,14 +418,9 @@ void Thread::search() {
          && !Signals.stop
          && (!Limits.depth || Threads.main()->rootDepth / ONE_PLY <= Limits.depth))
   {
-      // Set up the new depths for the helper threads skipping on average every
-      // 2nd ply (using a half-density matrix).
-      if (!mainThread)
-      {
-          const Row& row = HalfDensity[(idx - 1) % HalfDensitySize];
-          if (row[(rootDepth / ONE_PLY + rootPos.game_ply()) % row.size()])
-             continue;
-      }
+      // skip plies for helper threads
+      if (idx && skip_ply(idx, rootDepth / ONE_PLY + rootPos.game_ply()))
+          continue;
 
       // Age out PV variability metric
       if (mainThread)
@@ -688,7 +680,6 @@ namespace {
                             : (tte->bound() & BOUND_UPPER)))
     {
         // If ttMove is quiet, update move sorting heuristics on TT hit
-
         if (ttMove)
         {
             if (ttValue >= beta)
@@ -886,7 +877,6 @@ moves_loop: // When in check search starts from here
     const CounterMoveStats* fmh2 = (ss-4)->counterMoves;
 
     MovePicker mp(pos, ttMove, depth, ss);
-
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
             /* || ss->staticEval == VALUE_NONE Already implicit in the previous condition */
@@ -1056,7 +1046,7 @@ moves_loop: // When in check search starts from here
               else if (ss->history < VALUE_ZERO && (ss-1)->history > VALUE_ZERO)
                   r += ONE_PLY;
 
-              int positionBonus = -75*(pos.game_phase() - 20);
+              int positionBonus = pos.game_phase() < 64 ? -75*(pos.game_phase() - 64): -4800;
 
               // Decrease/increase reduction for moves with a good/bad history
               r = std::max(DEPTH_ZERO, (r / ONE_PLY + (positionBonus - ss->history) / 20000) * ONE_PLY);
@@ -1682,11 +1672,4 @@ void Tablebases::filter_root_moves(Position& pos, Search::RootMoves& rootMoves) 
         TB::Score =  TB::Score > VALUE_DRAW ?  VALUE_MATE - MAX_PLY - 1
                    : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
                                             :  VALUE_DRAW;
-
-
-
-
-
-
-
 }
