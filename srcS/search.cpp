@@ -26,7 +26,6 @@
 #include <sstream>
 
 #include "book.h"
-#include "tzbook.h"
 #include "evaluate.h"
 #include "misc.h"
 #include "movegen.h"
@@ -278,7 +277,7 @@ void MainThread::search() {
 
 
   if (rootMoves.empty())
-      {
+  {
       rootMoves.push_back(RootMove(MOVE_NONE));
       sync_cout << "info depth 0 score "
                 << UCI::value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW)
@@ -296,26 +295,13 @@ void MainThread::search() {
               goto finalize;
           }
       }
-      Move bookMove = MOVE_NONE;
 
-      if (!Limits.infinite && !Limits.mate)
-          bookMove = tzbook.probe2(rootPos);
 
-      if (bookMove && std::count(rootMoves.begin(), rootMoves.end(), bookMove))
-      {
-          std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), bookMove));
-          for (Thread* th : Threads)
-              if (th != this)
-                 std::swap(th->rootMoves[0], *std::find(th->rootMoves.begin(), th->rootMoves.end(), bookMove));
-      }
-      else
-      {
-          for (Thread* th : Threads)
-              if (th != this)
-                  th->start_searching();
+      for (Thread* th : Threads)
+          if (th != this)
+              th->start_searching();
 
       Thread::search(); // Let's start searching!
-      }
   }
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
@@ -799,6 +785,7 @@ namespace {
         // Null move dynamic reduction based on depth and value
         Depth R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
 
+
         pos.do_null_move(st);
         Value nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -beta+1)
                                             : - search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode, true);
@@ -816,6 +803,7 @@ namespace {
             // Do verification search at high depths
             Value v = depth-R < ONE_PLY ? qsearch<NonPV, false>(pos, ss, beta-1, beta)
                                         :  search<NonPV>(pos, ss, beta-1, beta, depth-R, false, true);
+
 
             if (v >= beta)
                 return nullValue;
@@ -837,6 +825,7 @@ namespace {
         assert((ss-1)->currentMove != MOVE_NULL);
 
         MovePicker mp(pos, ttMove, rbeta - ss->staticEval);
+
 
         while ((move = mp.next_move()) != MOVE_NONE)
             if (pos.legal(move))

@@ -27,7 +27,6 @@
 #include "tt.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
-#include "tzbook.h"
 
 namespace PSQT {
   void init();
@@ -46,7 +45,6 @@ int main(int argc, char* argv[]) {
   Pawns::init();
   Threads.init();
   Tablebases::init(Options["SyzygyPath"]);
-  tzbook.init(Options["BookPath"]);
   TT.resize(Options["Hash"]);
 
   UCI::loop(argc, argv);
