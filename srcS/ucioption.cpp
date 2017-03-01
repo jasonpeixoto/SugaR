@@ -45,8 +45,6 @@ void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 void on_brainbook_path(const Option& o) { tzbook.init(o); }
 void on_book_move2_prob(const Option& o) { tzbook.set_book_move2_probability(o); }
-
-
 /// Our case insensitive less() function as required by UCI protocol
 bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
 

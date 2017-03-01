@@ -1,4 +1,3 @@
-
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -137,18 +136,34 @@ namespace {
     Move pv[3];
   };
 
-  // skip half of the plies in blocks depending on the helper thread idx.
-  bool skip_ply(int idx, int ply) {
+  // Set of rows with half bits set to 1 and half to 0. It is used to allocate
+  // the search depths across the threads.
+  typedef std::vector<int> Row;
 
-    idx = (idx - 1) % 20 + 1; // cycle after 20 threads.
+  const Row HalfDensity[] = {
+    {0, 1},
+    {1, 0},
+    {0, 0, 1, 1},
+    {0, 1, 1, 0},
+    {1, 1, 0, 0},
+    {1, 0, 0, 1},
+    {0, 0, 0, 1, 1, 1},
+    {0, 0, 1, 1, 1, 0},
+    {0, 1, 1, 1, 0, 0},
+    {1, 1, 1, 0, 0, 0},
+    {1, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 1, 1},
+    {0, 0, 0, 0, 1, 1, 1, 1},
+    {0, 0, 0, 1, 1, 1, 1, 0},
+    {0, 0, 1, 1, 1, 1, 0 ,0},
+    {0, 1, 1, 1, 1, 0, 0 ,0},
+    {1, 1, 1, 1, 0, 0, 0 ,0},
+    {1, 1, 1, 0, 0, 0, 0 ,1},
+    {1, 1, 0, 0, 0, 0, 1 ,1},
+    {1, 0, 0, 0, 0, 1, 1 ,1},
+  };
 
-    // number of successive plies to skip, depending on idx.
-    int ones = 1;
-    while (ones * (ones + 1) < idx)
-        ones++;
-
-    return ((ply + idx - 1) / ones - ones) % 2 == 0;
-  }
+  const size_t HalfDensitySize = std::extent<decltype(HalfDensity)>::value;
 
   EasyMoveManager EasyMove;
   Value DrawValue[COLOR_NB];
@@ -165,6 +180,7 @@ namespace {
   void update_cm_stats(Stack* ss, Piece pc, Square s, Value bonus);
   void update_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, Value bonus);
   void check_time();
+
 
 } // namespace
 
@@ -260,9 +276,9 @@ void MainThread::search() {
   std::memset(Optimism, 0, sizeof(Optimism));
 
   // Distortion values of eval when we are winning
-  Optimism[WINNING][MATERIAL ][ us] =  5;  //["winning_optimism_pieces_us"];
-  Optimism[WINNING][PAWN     ][ us] = -2;  //["winning_optimism_pawns_us"];
-  Optimism[WINNING][MOBILITY ][ us] =  2;  //["winning_optimism_mobility_us"];
+  Optimism[WINNING][MATERIAL ][ us] =  0;  //["winning_optimism_pieces_us"];
+  Optimism[WINNING][PAWN     ][ us] =  0;  //["winning_optimism_pawns_us"];
+  Optimism[WINNING][MOBILITY ][ us] =  0;  //["winning_optimism_mobility_us"];
 
   Optimism[WINNING][MATERIAL ][~us] =  0;  //["winning_optimism_pieces_them"];
   Optimism[WINNING][PAWN     ][~us] =  0;  //["winning_optimism_pawns_them"];
@@ -418,9 +434,14 @@ void Thread::search() {
          && !Signals.stop
          && (!Limits.depth || Threads.main()->rootDepth / ONE_PLY <= Limits.depth))
   {
-      // skip plies for helper threads
-      if (idx && skip_ply(idx, rootDepth / ONE_PLY + rootPos.game_ply()))
-          continue;
+      // Set up the new depths for the helper threads skipping on average every
+      // 2nd ply (using a half-density matrix).
+      if (!mainThread)
+      {
+          const Row& row = HalfDensity[(idx - 1) % HalfDensitySize];
+          if (row[(rootDepth / ONE_PLY + rootPos.game_ply()) % row.size()])
+             continue;
+      }
 
       // Age out PV variability metric
       if (mainThread)
@@ -457,7 +478,7 @@ void Thread::search() {
               // search the already searched PV lines are preserved.
               std::stable_sort(rootMoves.begin() + PVIdx, rootMoves.end());
 
-              // If search has been stopped, break immediately. Sorting and
+              // If search has been stopped, we break immediately. Sorting and
               // writing PV back to TT is safe because RootMoves is still
               // valid, although it refers to the previous iteration.
               if (Signals.stop)
@@ -680,6 +701,7 @@ namespace {
                             : (tte->bound() & BOUND_UPPER)))
     {
         // If ttMove is quiet, update move sorting heuristics on TT hit
+
         if (ttMove)
         {
             if (ttValue >= beta)
@@ -877,6 +899,7 @@ moves_loop: // When in check search starts from here
     const CounterMoveStats* fmh2 = (ss-4)->counterMoves;
 
     MovePicker mp(pos, ttMove, depth, ss);
+
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
             /* || ss->staticEval == VALUE_NONE Already implicit in the previous condition */

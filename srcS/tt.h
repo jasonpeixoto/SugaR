@@ -43,9 +43,9 @@ struct TTEntry {
   Bound bound() const { return (Bound)(genBound8 & 0x3); }
 
   void save(Key k, Value v, Bound b, Depth d, Move m, Value ev, uint8_t g) {
-
+	  
     assert(d / ONE_PLY * ONE_PLY == d);
-
+	
     // Preserve any existing move for the same position
     if (m || (k >> 48) != key16)
         move16 = (uint16_t)m;
@@ -120,5 +120,4 @@ private:
 };
 
 extern TranspositionTable TT;
-
 #endif // #ifndef TT_H_INCLUDED
