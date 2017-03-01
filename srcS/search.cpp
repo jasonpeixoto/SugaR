@@ -1,3 +1,4 @@
+
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -596,11 +597,10 @@ namespace {
     TTEntry* tte;
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
-    Depth extension, newDepth, depthGain = depth;
-;
+    Depth extension, newDepth;
     Value bestValue, value, ttValue, eval;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
-    bool captureOrPromotion, doFullDepthSearch, moveCountPruning;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, pawnPush;
     Piece moved_piece;
     int moveCount, quietCount;
 
@@ -751,12 +751,6 @@ namespace {
         if (ttValue != VALUE_NONE)
             if (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))
                 eval = ttValue;
-
-        if (tte->depth() > DEPTH_ZERO && tte->depth() < depth)
-            depthGain -= tte->depth();
-
-        else if (tte->depth() > DEPTH_ZERO && tte->depth() >= depth)
-            depthGain = DEPTH_ZERO;
     }
     else
     {
@@ -773,13 +767,13 @@ namespace {
 
     // Step 6. Razoring (skipped when in check)
     if (   !PvNode
-        &&  depthGain < 3 * ONE_PLY
-        &&  eval + razor_margin[depthGain / ONE_PLY] <= alpha)
+        &&  depth < 4 * ONE_PLY
+        &&  eval + razor_margin[depth / ONE_PLY] <= alpha)
     {
         if (depth <= ONE_PLY)
             return qsearch<NonPV, false>(pos, ss, alpha, alpha+1);
 
-        Value ralpha = alpha - razor_margin[depthGain / ONE_PLY];
+        Value ralpha = alpha - razor_margin[depth / ONE_PLY];
         Value v = qsearch<NonPV, false>(pos, ss, ralpha, ralpha+1);
         if (v <= ralpha)
             return v;
@@ -899,6 +893,8 @@ moves_loop: // When in check search starts from here
       if (move == excludedMove)
           continue;
 
+	  pawnPush = false;
+
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
       // mode we also skip PV moves which have been already searched.
@@ -957,13 +953,18 @@ moves_loop: // When in check search starts from here
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
 
+	  if (moveCount > 1
+		  && pos.advanced_pawn_push(move)
+		  && pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) < 5000)
+		  pawnPush = true;
+
       // Step 13. Pruning at shallow depth
       if (  !rootNode
           && bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           if (   !captureOrPromotion
               && !givesCheck
-              && !pos.advanced_pawn_push(move))
+              && !pawnPush)
           {
               // Move count based pruning
               if (moveCountPruning)
