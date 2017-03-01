@@ -1,4 +1,3 @@
-
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -315,7 +314,7 @@ void MainThread::search() {
               if (th != this)
                   th->start_searching();
 
-          Thread::search(); // Let's start searching!
+      Thread::search(); // Let's start searching!
       }
   }
 
@@ -782,6 +781,7 @@ namespace {
     if (   !rootNode
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
+        &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
         &&  pos.non_pawn_material(pos.side_to_move()))
         return eval;
 
@@ -986,14 +986,16 @@ moves_loop: // When in check search starts from here
                   continue;
 
               // Prune moves with negative SEE
-              if (   !pos.see_ge(move, Value(-35 * lmrDepth * lmrDepth)))
+              if (   lmrDepth < 8
+                  && !pos.see_ge(move, Value(-35 * lmrDepth * lmrDepth)))
                   continue;
           }
-          else if (   !extension
-                   && !pos.see_ge(move, Value(-35 * depth / ONE_PLY * depth / ONE_PLY)))
+          else if (    depth < 7 * ONE_PLY
+                   && !extension
+
+                   && !pos.see_ge(move, -PawnValueEg * (depth / ONE_PLY)))
                   continue;
       }
-
       // Speculative prefetch as early as possible
       prefetch(TT.first_entry(pos.key_after(move)));
 
@@ -1047,10 +1049,8 @@ moves_loop: // When in check search starts from here
               else if (ss->history < VALUE_ZERO && (ss-1)->history > VALUE_ZERO)
                   r += ONE_PLY;
 
-              int positionBonus = pos.game_phase() < 64 ? -75*(pos.game_phase() - 64): -4800;
-
               // Decrease/increase reduction for moves with a good/bad history
-              r = std::max(DEPTH_ZERO, (r / ONE_PLY + (positionBonus - ss->history) / 20000) * ONE_PLY);
+              r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->history / 20000) * ONE_PLY);
           }
 
           Depth d = std::max(newDepth - r, ONE_PLY);
