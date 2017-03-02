@@ -29,6 +29,7 @@
 #include "tt.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
+
 using std::string;
 
 UCI::OptionsMap Options; // Global object
@@ -42,6 +43,8 @@ void on_large_pages(const Option& o) { TT.resize(o); }  // warning is ok, will b
 void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
+
+
 /// Our case insensitive less() function as required by UCI protocol
 bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
 
@@ -59,6 +62,7 @@ void init(OptionsMap& o) {
   
   unsigned int n = std::thread::hardware_concurrency();
   if (!n) n = 1;
+  o["Tactical Mode"]         << Option(false);
   o["Debug Log File"]        << Option("", on_logger);
   o["Contempt"]              << Option(0, -100, 100);
   o["OwnBook"]               << Option(false);
@@ -81,13 +85,24 @@ void init(OptionsMap& o) {
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(6, 0, 6);
   
-  o["losing_optimism_pieces_us"]    << Option(5, -100, 100);
-  o["losing_optimism_pawns_us"]     << Option(-2, -100, 100);
-  o["losing_optimism_mobility_us"]  << Option(2, -100, 100);
+  o["winning_optimism_pieces_us"]    << Option(6, -100, 100);
+  o["winning_optimism_pawns_us"]     << Option(2, -100, 100);
+  o["winning_optimism_mobility_us"]  << Option(0, -100, 100);
+  
+  o["winning_optimism_pieces_them"]    << Option(0, -100, 100);
+  o["winning_optimism_pawns_them"]     << Option(1, -100, 100);
+  o["winning_optimism_mobility_them"]  << Option(-12, -100, 100);
+  
+  o["losing_optimism_pieces_us"]    << Option(-17, -100, 100);
+  o["losing_optimism_pawns_us"]     << Option(5, -100, 100);
+  o["losing_optimism_mobility_us"]  << Option(-9, -100, 100);
+  
+  o["losing_optimism_pieces_them"]    << Option(0, -100, 100);
+  o["losing_optimism_pawns_them"]     << Option(5, -100, 100);
+  o["losing_optimism_mobility_them"]  << Option(-5, -100, 100);
+  
  
 }
-
-
 /// operator<<() is used to print all the options default values in chronological
 /// insertion order (the idx field) and in the format defined by the UCI protocol.
 

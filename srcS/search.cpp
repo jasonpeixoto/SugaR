@@ -258,26 +258,29 @@ void MainThread::search() {
   std::memset(Optimism, 0, sizeof(Optimism));
 
   // Distortion values of eval when we are winning
-  Optimism[WINNING][MATERIAL ][ us] =  0;  //["winning_optimism_pieces_us"];
-  Optimism[WINNING][PAWN     ][ us] =  0;  //["winning_optimism_pawns_us"];
-  Optimism[WINNING][MOBILITY ][ us] =  0;  //["winning_optimism_mobility_us"];
+  Optimism[WINNING][MATERIAL ][ us] =  Options["winning_optimism_pieces_us"];
+  Optimism[WINNING][PAWN     ][ us] =  Options["winning_optimism_pawns_us"];
+  Optimism[WINNING][MOBILITY ][ us] =  Options["winning_optimism_mobility_us"];
 
-  Optimism[WINNING][MATERIAL ][~us] =  0;  //["winning_optimism_pieces_them"];
-  Optimism[WINNING][PAWN     ][~us] =  0;  //["winning_optimism_pawns_them"];
-  Optimism[WINNING][MOBILITY ][~us] =  0;  //["winning_optimism_mobility_them"];
+  Optimism[WINNING][MATERIAL ][~us] =  Options["winning_optimism_pieces_them"];
+
+  Optimism[WINNING][PAWN     ][~us] =  Options["winning_optimism_pawns_them"];
+  Optimism[WINNING][MOBILITY ][~us] =  Options["winning_optimism_mobility_them"];
 
   // Distortion values of eval when we are losing
   Optimism[LOSING][MATERIAL ][ us] =  Options["losing_optimism_pieces_us"];
   Optimism[LOSING][PAWN     ][ us] =  Options["losing_optimism_pawns_us"];
+
   Optimism[LOSING][MOBILITY ][ us] =  Options["losing_optimism_mobility_us"];
 
-  Optimism[LOSING][MATERIAL ][~us] =  0;  //["losing_optimism_pieces_them"];
-  Optimism[LOSING][PAWN     ][~us] =  0;  //["losing_optimism_pawns_them"];
-  Optimism[LOSING][MOBILITY ][~us] =  0;  //["losing_optimism_mobility_them"];
+  Optimism[LOSING][MATERIAL ][~us] =  Options["losing_optimism_pieces_them"];
+
+  Optimism[LOSING][PAWN     ][~us] =  Options["losing_optimism_pawns_them"];
+  Optimism[LOSING][MOBILITY ][~us] =  Options["losing_optimism_mobility_them"];
 
 
   if (rootMoves.empty())
-  {
+      {
       rootMoves.push_back(RootMove(MOVE_NONE));
       sync_cout << "info depth 0 score "
                 << UCI::value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW)
@@ -295,7 +298,6 @@ void MainThread::search() {
               goto finalize;
           }
       }
-
 
       for (Thread* th : Threads)
           if (th != this)
@@ -390,7 +392,7 @@ void Thread::search() {
 
   size_t multiPV = Options["MultiPV"];
   Skill skill(Options["Skill Level"]);
-
+  if (Options["Tactical Mode"]) multiPV=256;
   // When playing with strength handicap enable MultiPV search that we will
   // use behind the scenes to retrieve a set of possible moves.
   if (skill.enabled())
@@ -527,7 +529,7 @@ void Thread::search() {
                                && Time.elapsed() > Time.optimum() * 5 / 44;
 
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 628
+                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 627
                   || (mainThread->easyMovePlayed = doEasyMove, doEasyMove))
               {
                   // If we are allowed to ponder do not stop the search now but
@@ -585,7 +587,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
-    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, pawnPush;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, pawnPush, skipQuiet, advancePawns;
     Piece moved_piece;
     int moveCount, quietCount;
 
@@ -827,7 +829,7 @@ namespace {
         MovePicker mp(pos, ttMove, rbeta - ss->staticEval);
 
 
-        while ((move = mp.next_move()) != MOVE_NONE)
+        while ((move = mp.next_move(false)) != MOVE_NONE)
             if (pos.legal(move))
             {
                 ss->currentMove = move;
@@ -872,16 +874,18 @@ moves_loop: // When in check search starts from here
                            && (tte->bound() & BOUND_LOWER)
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
 
+	skipQuiet = false;
+	Color stm = pos.side_to_move();
+	advancePawns = pos.pieces(stm, PAWN) & (stm == WHITE ? Rank7BB | Rank6BB : Rank2BB | Rank3BB);
+
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
-    while ((move = mp.next_move()) != MOVE_NONE)
+    while ((move = mp.next_move(skipQuiet)) != MOVE_NONE)
     {
       assert(is_ok(move));
 
       if (move == excludedMove)
           continue;
-
-	  pawnPush = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -911,12 +915,15 @@ moves_loop: // When in check search starts from here
       moveCountPruning =   depth < 16 * ONE_PLY
                         && moveCount >= FutilityMoveCounts[improving][depth / ONE_PLY];
 
+
+
       // Step 12. Extensions
       // Extend checks
       if (    givesCheck
           && !moveCountPruning
           &&  pos.see_ge(move, VALUE_ZERO))
           extension = ONE_PLY;
+
 
       // Singular extension search. If all moves but one fail low on a search of
       // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
@@ -938,13 +945,16 @@ moves_loop: // When in check search starts from here
               extension = ONE_PLY;
       }
 
+
+	 pawnPush = moveCount > 1
+		   && pos.advanced_pawn_push(move)
+		   && pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) < 5000;
+		  
+
+	 skipQuiet = moveCountPruning && !rootNode && bestValue > VALUE_MATED_IN_MAX_PLY && !advancePawns;
+
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
-
-	  if (moveCount > 1
-		  && pos.advanced_pawn_push(move)
-		  && pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) < 5000)
-		  pawnPush = true;
 
       // Step 13. Pruning at shallow depth
       if (  !rootNode
@@ -1041,6 +1051,14 @@ moves_loop: // When in check search starts from here
               // Decrease/increase reduction for moves with a good/bad history
               r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->history / 20000) * ONE_PLY);
           }
+
+          // The "Tactical Mode" option looks SugaR to look at more positions per search depth, but SugaR will play
+          // weaker overall.  It also sets the "MultiPV" option to 256 to allow SugaR to look at more nodes per
+          // depth and may help in analysis.
+		  
+		  if ( ( ss->ply < depth / 2 - ONE_PLY) && Options["Tactical Mode"] )
+		    r = DEPTH_ZERO;
+
 
           Depth d = std::max(newDepth - r, ONE_PLY);
 
@@ -1291,7 +1309,7 @@ moves_loop: // When in check search starts from here
     MovePicker mp(pos, ttMove, depth, to_sq((ss-1)->currentMove));
 
     // Loop through the moves until no moves remain or a beta cutoff occurs
-    while ((move = mp.next_move()) != MOVE_NONE)
+    while ((move = mp.next_move(false)) != MOVE_NONE)
     {
       assert(is_ok(move));
 

@@ -1,3 +1,4 @@
+
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -117,19 +118,19 @@ namespace {
   // game, indexed by piece type and number of attacked squares in the MobilityArea.
   const Score MobilityBonus[][32] = {
     {}, {},
-    { S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12), // Knights
-      S( 22, 26), S( 29, 29), S( 36, 29) },
-    { S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42), // Bishops
-      S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
-      S( 91, 88), S( 98, 97) },
-    { S(-60,-77), S(-26,-20), S(-11, 27), S( -6, 57), S( -3, 69), S( -1, 82), // Rooks
-      S( 10,109), S( 16,121), S( 24,131), S( 25,143), S( 32,155), S( 32,163),
-      S( 43,167), S( 48,171), S( 56,173) },
-    { S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54), // Queens
-      S( 28, 61), S( 41, 73), S( 43, 79), S( 48, 92), S( 56, 94), S( 60,104),
-      S( 60,113), S( 66,120), S( 67,123), S( 70,126), S( 71,133), S( 73,136),
-      S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
-      S(106,184), S(109,191), S(113,206), S(116,212) }
+    { S(-75,-76), S(-57,-53), S(-10,-30), S( -4,-10), S(  6,  5), S( 15, 12), // Knights
+      S( 23, 27), S( 29, 29), S( 35, 29) },
+    { S(-47,-59), S(-20,-23), S( 14, -3), S( 27, 13), S( 39, 24), S( 51, 43), // Bishops
+      S( 56, 52), S( 63, 57), S( 63, 65), S( 69, 73), S( 83, 78), S( 82, 85),
+      S( 93, 89), S( 99, 98) },
+    { S(-58,-77), S(-26,-21), S(-11, 28), S( -7, 57), S( -3, 67), S( -2, 82), // Rooks
+      S( 10,110), S( 16,120), S( 25,131), S( 25,143), S( 32,156), S( 32,165),
+      S( 46,169), S( 47,172), S( 57,172) },
+    { S(-39,-36), S(-22,-15), S(  4,  8), S(  3, 17), S( 13, 33), S( 20, 54), // Queens
+      S( 30, 61), S( 40, 72), S( 44, 80), S( 48, 91), S( 55, 94), S( 60,106),
+      S( 60,113), S( 66,120), S( 66,124), S( 71,125), S( 72,135), S( 72,138),
+      S( 78,140), S( 87,141), S( 88,148), S(100,167), S(102,170), S(102,176),
+      S(105,184), S(108,189), S(114,206), S(116,212) }
   };
 
   // Outpost[knight/bishop][supported by pawn] contains bonuses for minor
@@ -183,11 +184,11 @@ namespace {
   // indexed by piece type and distance between the piece and the king.
   const Score Protector[PIECE_TYPE_NB][8] = {
     {}, {},
-    { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
-    { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
-    { S(0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
-    { S(0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
-    { S(0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6),  S(-4, 7), S(-13,-7), S(-10, -7) }  // Queen
+
+    { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S( -9,-5), S( -1,-3), S( -7,-3), S(-18,-11) }, // Knight
+    { S(0, 0), S(11, 8), S(-7,-1), S(-2,-2), S( -1,-6), S(-11,-4), S( -10,-1), S(-15, -1) }, // Bishop
+    { S(0, 0), S(10, 0), S(-2, 2), S(-6, 5), S( -6, 2), S(-14,-4), S( -3,-8), S(-12, -7) }, // Rook
+    { S(0, 0), S( 2,-7), S( 2,-4), S(-3, 1), S( -9,-6),  S(-5, 7), S(-14,-7), S(-10, -8) }  // Queen
   };
 
   // Assorted bonuses and penalties used by evaluation
@@ -235,18 +236,21 @@ namespace {
     const Square Down = (Us == WHITE ? SOUTH : NORTH);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.square<KING>(Them));
     ei.attackedBy[Them][ALL_PIECES] |= b;
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
-
-
-
-
-
-
-
-
-
     // Init king safety tables only if we are going to use them
     if (pos.non_pawn_material(Us) >= QueenValueMg)
     {
@@ -300,6 +304,7 @@ namespace {
         int mob = popcount(b & mobilityArea[Us]);
 
         ei.mobility[Us] += MobilityBonus[Pt][mob];
+
 
 
 
@@ -429,6 +434,7 @@ namespace {
         // later into a king danger score. The initial value is based on the
         // number and types of the enemy's attacking pieces, the number of
         // attacked and undefended squares around our king and the quality of
+        // the pawn shelter (current 'score' value).
         // the pawn shelter (current 'score' value).
         kingDanger =  std::min(807, ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them])
                     + 101 * ei.kingAdjacentZoneAttacksCount[Them]
