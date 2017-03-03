@@ -393,6 +393,7 @@ void Thread::search() {
   size_t multiPV = Options["MultiPV"];
   Skill skill(Options["Skill Level"]);
   if (Options["Tactical Mode"]) multiPV=256;
+  
   // When playing with strength handicap enable MultiPV search that we will
   // use behind the scenes to retrieve a set of possible moves.
   if (skill.enabled())
@@ -1055,7 +1056,6 @@ moves_loop: // When in check search starts from here
           // The "Tactical Mode" option looks SugaR to look at more positions per search depth, but SugaR will play
           // weaker overall.  It also sets the "MultiPV" option to 256 to allow SugaR to look at more nodes per
           // depth and may help in analysis.
-		  
 		  if ( ( ss->ply < depth / 2 - ONE_PLY) && Options["Tactical Mode"] )
 		    r = DEPTH_ZERO;
 
