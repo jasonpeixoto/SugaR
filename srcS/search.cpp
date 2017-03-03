@@ -877,7 +877,10 @@ moves_loop: // When in check search starts from here
 
 	skipQuiet = false;
 	Color stm = pos.side_to_move();
-	advancePawns = pos.pieces(stm, PAWN) & (stm == WHITE ? Rank7BB | Rank6BB : Rank2BB | Rank3BB);
+		if (stm == WHITE)
+		advancePawns = pos.pieces(stm, PAWN) << 8 & (Rank7BB | Rank8BB) & ~pos.pieces();
+	else
+		advancePawns= pos.pieces(stm, PAWN) >> 8 & (Rank1BB | Rank2BB) & ~pos.pieces();
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
