@@ -288,14 +288,10 @@ namespace {
 
         int mob = popcount(b & mobilityArea[Us]);
 
-        ei.mobility[Us] += MobilityBonus[Pt][mob];
+        ei.mobility[Us] += MobilityBonus[Pt-2][mob];
 
-
-
-
-        
         // Bonus for this piece as a king protector
-        score += Protector[Pt][distance(s, pos.square<KING>(Us))];
+        score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
