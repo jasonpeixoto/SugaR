@@ -26,6 +26,7 @@
 #include <sstream>
 
 #include "book.h"
+#include "tzbook.h"
 #include "evaluate.h"
 #include "misc.h"
 #include "movegen.h"
@@ -147,9 +148,11 @@ namespace {
 
     return ((ply + idx - 1) / ones - ones) % 2 == 0;
   }
-
+  
   EasyMoveManager EasyMove;
   Value DrawValue[COLOR_NB];
+  bool doRazor, doFutility, doNull, doProbcut, doPruning, doLMR;
+  Depth maxLMR;
 
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool skipEarlyPruning);
@@ -249,10 +252,20 @@ void MainThread::search() {
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
 
+  // Read contempt
   int contempt = Options["Contempt"] * PawnValueEg / 100; // From centipawns
   DrawValue[ us] = VALUE_DRAW - Value(contempt);
   DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
+  // Read search options
+  doRazor = Options["Razoring"];
+  doFutility = Options["Futility"];
+  doNull = Options["NullMove"];
+  doProbcut = Options["ProbCut"];
+  doPruning = Options["Pruning"];
+  doLMR = Options["LMR"];
+  maxLMR = Options["MaxLMR"] * ONE_PLY;
+  
   rootColor = rootPos.side_to_move();
 
   std::memset(Optimism, 0, sizeof(Optimism));
@@ -298,12 +311,26 @@ void MainThread::search() {
               goto finalize;
           }
       }
+      Move bookMove = MOVE_NONE;
 
-      for (Thread* th : Threads)
-          if (th != this)
-              th->start_searching();
+      if (!Limits.infinite && !Limits.mate)
+          bookMove = tzbook.probe2(rootPos);
+
+      if (bookMove && std::count(rootMoves.begin(), rootMoves.end(), bookMove))
+      {
+          std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(), bookMove));
+          for (Thread* th : Threads)
+              if (th != this)
+                 std::swap(th->rootMoves[0], *std::find(th->rootMoves.begin(), th->rootMoves.end(), bookMove));
+      }
+      else
+      {
+          for (Thread* th : Threads)
+              if (th != this)
+                  th->start_searching();
 
       Thread::search(); // Let's start searching!
+      }
   }
 
   // When playing in 'nodes as time' mode, subtract the searched nodes from
@@ -753,7 +780,8 @@ namespace {
         goto moves_loop;
 
     // Step 6. Razoring (skipped when in check)
-    if (   !PvNode
+    if (    doRazor
+        && !PvNode
         &&  depth < 4 * ONE_PLY
         &&  eval + razor_margin[depth / ONE_PLY] <= alpha)
     {
@@ -767,7 +795,9 @@ namespace {
     }
 
     // Step 7. Futility pruning: child node (skipped when in check)
-    if (   !rootNode
+
+    if (    doFutility
+        && !PvNode
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
@@ -775,7 +805,8 @@ namespace {
         return eval;
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
-    if (   !PvNode
+    if (    doNull
+        && !PvNode
         &&  eval >= beta
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -787,7 +818,6 @@ namespace {
 
         // Null move dynamic reduction based on depth and value
         Depth R = ((823 + 67 * depth / ONE_PLY) / 256 + std::min((eval - beta) / PawnValueMg, 3)) * ONE_PLY;
-
 
         pos.do_null_move(st);
         Value nullValue = depth-R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss+1, -beta, -beta+1)
@@ -816,7 +846,8 @@ namespace {
     // Step 9. ProbCut (skipped when in check)
     // If we have a good enough capture and a reduced search returns a value
     // much above beta, we can (almost) safely prune the previous move.
-    if (   !PvNode
+    if (    doProbcut
+        && !PvNode
         &&  depth >= 5 * ONE_PLY
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
@@ -919,15 +950,12 @@ moves_loop: // When in check search starts from here
       moveCountPruning =   depth < 16 * ONE_PLY
                         && moveCount >= FutilityMoveCounts[improving][depth / ONE_PLY];
 
-
-
       // Step 12. Extensions
       // Extend checks
       if (    givesCheck
           && !moveCountPruning
           &&  pos.see_ge(move, VALUE_ZERO))
           extension = ONE_PLY;
-
 
       // Singular extension search. If all moves but one fail low on a search of
       // (alpha-s, beta-s), and just one fails high on (alpha, beta), then that move
@@ -961,8 +989,12 @@ moves_loop: // When in check search starts from here
       newDepth = depth - ONE_PLY + extension;
 
       // Step 13. Pruning at shallow depth
-      if (  !rootNode
-          && bestValue > VALUE_MATED_IN_MAX_PLY)
+
+      if (    doPruning
+          && !PvNode
+          &&  pos.count<PAWN>(pos.side_to_move())
+          &&  pos.non_pawn_material(pos.side_to_move())
+          &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           if (   !captureOrPromotion
               && !givesCheck
@@ -995,10 +1027,10 @@ moves_loop: // When in check search starts from here
           }
           else if (    depth < 7 * ONE_PLY
                    && !extension
-
                    && !pos.see_ge(move, -PawnValueEg * (depth / ONE_PLY)))
                   continue;
       }
+
       // Speculative prefetch as early as possible
       prefetch(TT.first_entry(pos.key_after(move)));
 
@@ -1018,7 +1050,8 @@ moves_loop: // When in check search starts from here
 
       // Step 15. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
-      if (    depth >= 3 * ONE_PLY
+      if (    doLMR
+          &&  depth >= 3 * ONE_PLY
           &&  moveCount > 1
           && (!captureOrPromotion || moveCountPruning))
       {
@@ -1062,7 +1095,8 @@ moves_loop: // When in check search starts from here
 		  if ( ( ss->ply < depth / 2 - ONE_PLY) && Options["Tactical Mode"] )
 		    r = DEPTH_ZERO;
 
-
+          // Set maximum reduction
+          r = std::min(r, maxLMR);
           Depth d = std::max(newDepth - r, ONE_PLY);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, false);

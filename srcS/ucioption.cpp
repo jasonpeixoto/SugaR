@@ -29,7 +29,7 @@
 #include "tt.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
-
+#include "tzbook.h"
 using std::string;
 
 UCI::OptionsMap Options; // Global object
@@ -43,6 +43,8 @@ void on_large_pages(const Option& o) { TT.resize(o); }  // warning is ok, will b
 void on_logger(const Option& o) { start_logger(o); }
 void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
+void on_brainbook_path(const Option& o) { tzbook.init(o); }
+void on_book_move2_prob(const Option& o) { tzbook.set_book_move2_probability(o); }
 
 
 /// Our case insensitive less() function as required by UCI protocol
@@ -70,6 +72,13 @@ void init(OptionsMap& o) {
   o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]            << Option(on_clear_hash);
   o["Ponder"]                << Option(false);
+  o["Razoring"]              << Option(true);
+  o["Futility"]              << Option(true);
+  o["NullMove"]              << Option(true);
+  o["ProbCut"]               << Option(true);
+  o["Pruning"]               << Option(true);
+  o["LMR"]                   << Option(true);
+  o["MaxLMR"]                << Option(10, 0, 20);
   o["MultiPV"]               << Option(1, 1, 500);
   o["Skill Level"]           << Option(20, 0, 20);
   o["Best Book Move"]        << Option(false);
@@ -100,8 +109,10 @@ void init(OptionsMap& o) {
   o["losing_optimism_pieces_them"]    << Option(0, -100, 100);
   o["losing_optimism_pawns_them"]     << Option(5, -100, 100);
   o["losing_optimism_mobility_them"]  << Option(-5, -100, 100);
-  
- 
+
+  o["Book Move2 Probability"]         << Option(0, 0, 100, on_book_move2_prob);
+  o["BookPath"]                       << Option("<empty>", on_brainbook_path);
+
 }
 /// operator<<() is used to print all the options default values in chronological
 /// insertion order (the idx field) and in the format defined by the UCI protocol.
@@ -182,6 +193,7 @@ Option& Option::operator=(const string& v) {
 
   if (on_change)
       on_change(*this);
+
 
   return *this;
 }
