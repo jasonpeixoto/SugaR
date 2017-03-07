@@ -114,10 +114,9 @@ namespace {
   #define V(v) Value(v)
   #define S(mg, eg) make_score(mg, eg)
 
-  // MobilityBonus[PieceType][attacked] contains bonuses for middle and end
-  // game, indexed by piece type and number of attacked squares in the MobilityArea.
-  const Score MobilityBonus[][32] = {
-    {}, {},
+  // MobilityBonus[PieceType-2][attacked] contains bonuses for middle and end game,
+  // indexed by piece type and number of attacked squares in the mobility area.
+  const Score MobilityBonus[4][32] = {
     { S(-75,-76), S(-57,-53), S(-10,-30), S( -4,-10), S(  6,  5), S( 15, 12), // Knights
       S( 23, 27), S( 29, 29), S( 35, 29) },
     { S(-47,-59), S(-20,-23), S( 14, -3), S( 27, 13), S( 39, 24), S( 51, 43), // Bishops
@@ -181,11 +180,9 @@ namespace {
     S(-20,-12), S( 1, -8), S( 2, 10), S(  9, 10)
   };
   
-  // Protector[PieceType][distance] contains a protecting bonus for our king,
+  // Protector[PieceType-2][distance] contains a protecting bonus for our king,
   // indexed by piece type and distance between the piece and the king.
-  const Score Protector[PIECE_TYPE_NB][8] = {
-    {}, {},
-
+  const Score Protector[4][8] = {
     { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S( -9,-5), S( -1,-3), S( -7,-3), S(-18,-11) }, // Knight
     { S(0, 0), S(11, 8), S(-7,-1), S(-2,-2), S( -1,-6), S(-11,-4), S( -10,-1), S(-15, -1) }, // Bishop
     { S(0, 0), S(10, 0), S(-2, 2), S(-6, 5), S( -6, 2), S(-14,-4), S( -3,-8), S(-12, -7) }, // Rook
@@ -235,6 +232,13 @@ namespace {
 
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
     const Square Down = (Us == WHITE ? SOUTH : NORTH);
+
+
+
+
+
+
+
 
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.square<KING>(Them));
     ei.attackedBy[Them][ALL_PIECES] |= b;
@@ -291,15 +295,10 @@ namespace {
 
         int mob = popcount(b & mobilityArea[Us]);
 
-        ei.mobility[Us] += MobilityBonus[Pt][mob];
-
-
-
-
-
+        ei.mobility[Us] += MobilityBonus[Pt-2][mob];
         
         // Bonus for this piece as a king protector
-        score += Protector[Pt][distance(s, pos.square<KING>(Us))];
+score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
