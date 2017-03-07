@@ -151,7 +151,7 @@ namespace {
   
   EasyMoveManager EasyMove;
   Value DrawValue[COLOR_NB];
-  bool doRazor, doFutility, doNull, doProbcut, doPruning, doLMR;
+  bool goForMate, doRazor, doFutility, doNull, doProbcut, doPruning, doLMR;
   Depth maxLMR;
 
   template <NodeType NT>
@@ -258,6 +258,7 @@ void MainThread::search() {
   DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
   // Read search options
+  goForMate = Options["ExtendChecks"];
   doRazor = Options["Razoring"];
   doFutility = Options["Futility"];
   doNull = Options["NullMove"];
@@ -950,11 +951,22 @@ moves_loop: // When in check search starts from here
       moveCountPruning =   depth < 16 * ONE_PLY
                         && moveCount >= FutilityMoveCounts[improving][depth / ONE_PLY];
 
-      // Step 12. Extensions
-      // Extend checks
-      if (    givesCheck
-          && !moveCountPruning
-          &&  pos.see_ge(move, VALUE_ZERO))
+      // Step 12a. Extend checks
+      if (givesCheck)
+      {
+          if (   goForMate
+              && pos.side_to_move() == thisThread->rootPos.side_to_move())
+              extension = ONE_PLY;
+
+          else if (  !moveCountPruning
+                   && pos.see_ge(move, VALUE_ZERO))
+              extension = ONE_PLY;
+      }
+
+      // Step 12b. Extend pawn captures in late endgame
+      if (  !extension
+          && pos.non_pawn_material(pos.side_to_move()) <= BishopValueMg
+          && type_of(pos.captured_piece()) == PAWN)
           extension = ONE_PLY;
 
       // Singular extension search. If all moves but one fail low on a search of
@@ -1276,6 +1288,7 @@ moves_loop: // When in check search starts from here
     if (pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
         return ss->ply >= MAX_PLY && !InCheck ? evaluate(pos)
                                               : DrawValue[pos.side_to_move()];
+
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 

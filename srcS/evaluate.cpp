@@ -30,6 +30,7 @@
 #include "material.h"
 #include "pawns.h"
 #include "uci.h"
+
 namespace {
 
   namespace Trace {
@@ -113,10 +114,10 @@ namespace {
 
   #define V(v) Value(v)
   #define S(mg, eg) make_score(mg, eg)
-
   // MobilityBonus[PieceType-2][attacked] contains bonuses for middle and end game,
   // indexed by piece type and number of attacked squares in the mobility area.
   const Score MobilityBonus[4][32] = {
+   
     { S(-75,-76), S(-57,-53), S(-10,-30), S( -4,-10), S(  6,  5), S( 15, 12), // Knights
       S( 23, 27), S( 29, 29), S( 35, 29) },
     { S(-47,-59), S(-20,-23), S( 14, -3), S( 27, 13), S( 39, 24), S( 51, 43), // Bishops
@@ -157,7 +158,6 @@ namespace {
   const Score ThreatByMinor[PIECE_TYPE_NB] = {
     S(0, 0), S(0, 33), S(45, 43), S(46, 47), S(72, 107), S(48, 118)
   };
-
 
   const Score ThreatByRook[PIECE_TYPE_NB] = {
     S(0, 0), S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48)
@@ -233,13 +233,6 @@ namespace {
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
     const Square Down = (Us == WHITE ? SOUTH : NORTH);
 
-
-
-
-
-
-
-
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.square<KING>(Them));
     ei.attackedBy[Them][ALL_PIECES] |= b;
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
@@ -295,10 +288,14 @@ namespace {
 
         int mob = popcount(b & mobilityArea[Us]);
 
-        ei.mobility[Us] += MobilityBonus[Pt-2][mob];
+        ei.mobility[Us] += MobilityBonus[Pt][mob];
+
+
+
+
         
         // Bonus for this piece as a king protector
-score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
+        score += Protector[Pt][distance(s, pos.square<KING>(Us))];
 
         if (Pt == BISHOP || Pt == KNIGHT)
         {
@@ -457,14 +454,12 @@ score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
         if (b1 & ei.attackedBy[Them][ROOK] & safe)
             kingDanger += RookCheck;
 
-
         else if (b1 & ei.attackedBy[Them][ROOK] & other)
             score -= OtherCheck;
 
         // Enemy bishops safe and other checks
         if (b2 & ei.attackedBy[Them][BISHOP] & safe)
             kingDanger += BishopCheck;
-
 
         else if (b2 & ei.attackedBy[Them][BISHOP] & other)
             score -= OtherCheck;
@@ -505,6 +500,7 @@ score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
 
     return score;
   }
+
 
   // evaluate_threats() assigns bonuses according to the types of the attacking
   // and the attacked pieces.
@@ -788,7 +784,6 @@ score += Protector[Pt-2][distance(s, pos.square<KING>(Us))];
     Color strongSide = eg > VALUE_DRAW ? WHITE : BLACK;
     ScaleFactor sf = ei.me->scale_factor(pos, strongSide);
 
-
     // If we don't already have an unusual scale factor, check for certain
     // types of endgames, and use a lower scale for those.
     if (sf == SCALE_FACTOR_NORMAL || sf == SCALE_FACTOR_ONEPAWN)
@@ -975,8 +970,6 @@ std::string Eval::trace(const Position& pos) {
 
   return ss.str();
 }
-
-
 
 
 long Eval::Optimism[STRATEGY_NB][TERM_NB][COLOR_NB];

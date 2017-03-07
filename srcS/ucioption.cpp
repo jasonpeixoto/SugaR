@@ -72,6 +72,7 @@ void init(OptionsMap& o) {
   o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]            << Option(on_clear_hash);
   o["Ponder"]                << Option(false);
+  o["ExtendChecks"]          << Option(false);
   o["Razoring"]              << Option(true);
   o["Futility"]              << Option(true);
   o["NullMove"]              << Option(true);
