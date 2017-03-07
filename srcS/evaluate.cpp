@@ -916,8 +916,8 @@ score += apply_weight(ei.mobility[WHITE] - ei.mobility[BLACK], Weights[Mobility]
   
   // Evaluate space for both sides, only during opening
   if (pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK) >= 12222)
-      score +=  evaluate_space<WHITE>(pos, ei)
-              - evaluate_space<BLACK>(pos, ei);
+      score += apply_weight(  evaluate_space<WHITE>(pos, ei)
+                            - evaluate_space<BLACK>(pos, ei), Weights[Space]);
 
   // Evaluate position potential for the winning side
   score += evaluate_initiative(pos, ei, score);
