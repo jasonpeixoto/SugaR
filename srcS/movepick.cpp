@@ -115,7 +115,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th)
   ttMove =   ttm
           && pos.pseudo_legal(ttm)
           && pos.capture(ttm)
-          && pos.see_ge(ttm, threshold)? ttm : MOVE_NONE;
+          && pos.see_ge(ttm, threshold) ? ttm : MOVE_NONE;
 
   stage += (ttMove == MOVE_NONE);
 }
@@ -142,16 +142,16 @@ void MovePicker::score<QUIETS>() {
 
   const HistoryStats& history = pos.this_thread()->history;
 
-  const CounterMoveStats& cmh = *(ss-1)->counterMoves;
-  const CounterMoveStats& fmh = *(ss-2)->counterMoves;
-  const CounterMoveStats& fm2 = *(ss-4)->counterMoves;
+  const CounterMoveStats* cmh = (ss-1)->counterMoves;
+  const CounterMoveStats* fmh = (ss-2)->counterMoves;
+  const CounterMoveStats* fmh2 = (ss-4)->counterMoves;
 
   Color c = pos.side_to_move();
 
   for (auto& m : *this)
-      m.value =  cmh[pos.moved_piece(m)][to_sq(m)]
-               + fmh[pos.moved_piece(m)][to_sq(m)]
-               + fm2[pos.moved_piece(m)][to_sq(m)]
+      m.value =   (*cmh)[pos.moved_piece(m)][to_sq(m)]
+               +  (*fmh)[pos.moved_piece(m)][to_sq(m)]
+               + (*fmh2)[pos.moved_piece(m)][to_sq(m)]
                + history.get(c, m);
 }
 
