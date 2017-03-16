@@ -215,8 +215,13 @@ void prefetch(void* addr) {
 
 #endif
 
-namespace WinProcGroup {
+void prefetch2(void* addr) {
 
+    prefetch(addr);
+    prefetch((uint8_t*)addr + 64);
+}
+
+namespace WinProcGroup {
 #ifndef _WIN32
 
 void bindThisThread(size_t) {}
