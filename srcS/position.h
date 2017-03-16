@@ -90,6 +90,7 @@ public:
   Square ep_square() const;
   bool empty(Square s) const;
   template<PieceType Pt> int count(Color c) const;
+  template<PieceType Pt> int count() const;
   template<PieceType Pt> const Square* squares(Color c) const;
   template<PieceType Pt> Square square(Color c) const;
 
@@ -126,7 +127,7 @@ public:
   // Piece specific
   bool pawn_passed(Color c, Square s) const;
   bool opposite_bishops() const;
-
+  bool bishop_pair(Color c) const;
   // Doing and undoing moves
   void do_move(Move m, StateInfo& newSt);
   void do_move(Move m, StateInfo& newSt, bool givesCheck);
@@ -154,7 +155,7 @@ public:
   int rule50_count() const;
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
-
+  Value non_pawn_material() const;
   // Position consistency check, for debugging
   bool pos_is_ok(int* failedStep = nullptr) const;
   void flip();
@@ -234,6 +235,10 @@ inline Bitboard Position::pieces(Color c, PieceType pt1, PieceType pt2) const {
 
 template<PieceType Pt> inline int Position::count(Color c) const {
   return pieceCount[make_piece(c, Pt)];
+}
+
+template<PieceType Pt> inline int Position::count() const {
+  return pieceCount[make_piece(WHITE, Pt)] + pieceCount[make_piece(BLACK, Pt)];
 }
 
 template<PieceType Pt> inline const Square* Position::squares(Color c) const {
@@ -330,6 +335,10 @@ inline Value Position::non_pawn_material(Color c) const {
   return st->nonPawnMaterial[c];
 }
 
+inline Value Position::non_pawn_material() const {
+  return st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
+}
+
 inline int Position::game_ply() const {
   return gamePly;
 }
@@ -346,6 +355,12 @@ inline bool Position::opposite_bishops() const {
   return   pieceCount[W_BISHOP] == 1
         && pieceCount[B_BISHOP] == 1
         && opposite_colors(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
+}
+
+inline bool Position::bishop_pair(Color c) const {
+  return   pieceCount[make_piece(c, BISHOP)] > 1
+        && byColorBB[c] & byTypeBB[BISHOP] &  DarkSquares
+        && byColorBB[c] & byTypeBB[BISHOP] & ~DarkSquares;
 }
 
 inline bool Position::is_chess960() const {

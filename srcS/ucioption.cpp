@@ -23,6 +23,7 @@
 #include <ostream>
 
 #include <thread>
+#include "evaluate.h"
 #include "misc.h"
 #include "search.h"
 #include "thread.h"
@@ -38,6 +39,7 @@ namespace UCI {
 
 /// 'On change' actions, triggered by an option's value change
 void on_clear_hash(const Option&) { Search::clear(); }
+void on_eval(const Option&) { Eval::init(); }
 void on_hash_size(const Option& o) { TT.resize(o); }
 void on_large_pages(const Option& o) { TT.resize(o); }  // warning is ok, will be removed
 void on_logger(const Option& o) { start_logger(o); }
@@ -72,6 +74,21 @@ void init(OptionsMap& o) {
   o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]            << Option(on_clear_hash);
   o["Ponder"]                << Option(false);
+  o["Material(mg)"]          << Option(100, 0, 300, on_eval);
+  o["Material(eg)"]          << Option(100, 0, 300, on_eval);
+  o["Imbalance(mg)"]         << Option(100, 0, 300, on_eval);
+  o["Imbalance(eg)"]         << Option(100, 0, 300, on_eval);
+  o["PawnStructure(mg)"]     << Option(100, 0, 300, on_eval);
+  o["PawnStructure(eg)"]     << Option(100, 0, 300, on_eval);
+  o["Mobility(mg)"]          << Option(100, 0, 300, on_eval);
+  o["Mobility(eg)"]          << Option(100, 0, 300, on_eval);
+  o["PassedPawns(mg)"]       << Option(100, 0, 300, on_eval);
+  o["PassedPawns(eg)"]       << Option(100, 0, 300, on_eval);
+  o["KingSafety(mg)"]        << Option(100, 0, 300, on_eval);
+  o["KingSafety(eg)"]        << Option(100, 0, 300, on_eval);
+  o["Threats(mg)"]           << Option(100, 0, 300, on_eval);
+  o["Threats(eg)"]           << Option(100, 0, 300, on_eval);
+  o["Space"]                 << Option(100, 0, 300, on_eval);
   o["ExtendChecks"]          << Option(false);
   o["Razoring"]              << Option(true);
   o["Futility"]              << Option(true);
@@ -79,7 +96,7 @@ void init(OptionsMap& o) {
   o["ProbCut"]               << Option(true);
   o["Pruning"]               << Option(true);
   o["LMR"]                   << Option(true);
-  o["MaxLMR"]                << Option(10, 0, 20);
+  o["TuneLMR"]               << Option(10, 0, 20);
   o["MultiPV"]               << Option(1, 1, 500);
   o["Skill Level"]           << Option(20, 0, 20);
   o["Best Book Move"]        << Option(false);

@@ -37,6 +37,7 @@ std::string trace(const Position& pos);
 
 template<bool DoTrace = false>
 Value evaluate(const Position& pos);
+extern void init();
 }
 
 #endif // #ifndef EVALUATE_H_INCLUDED
