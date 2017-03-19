@@ -248,9 +248,6 @@ namespace {
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
     const Square Down = (Us == WHITE ? SOUTH : NORTH);
 
-
-
-
     Bitboard b = ei.attackedBy[Them][KING] = pos.attacks_from<KING>(pos.square<KING>(Them));
     ei.attackedBy[Them][ALL_PIECES] |= b;
     ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
@@ -769,12 +766,11 @@ namespace {
     // These terms will be useful for computing the endgame bonus
     int kingDistance =  distance<File>(pos.square<KING>(WHITE), pos.square<KING>(BLACK))
                       - distance<Rank>(pos.square<KING>(WHITE), pos.square<KING>(BLACK));
-    int pawns = pos.count<PAWN>();
     int asymmetry = ei.pi->pawn_asymmetry();
     bool bothFlanks = (pos.pieces(PAWN) & QueenSide) && (pos.pieces(PAWN) & KingSide);
 
     // Compute the initiative bonus for the attacking side in endgame
-    int initiative = 8 * (asymmetry + kingDistance + 2 * bothFlanks - 17) + 12 * pawns;
+    int initiative = 8 * (asymmetry + kingDistance - 17) + 12 * pos.count<PAWN>() + 16 * bothFlanks;
 
     // Note that for endgame we find the attacking side by extracting the
     // sign of the endgame value, and that we carefully cap the bonus so
@@ -807,6 +803,7 @@ namespace {
 
             // Endgame with opposite-colored bishops, but also other pieces. Still
             // a bit drawish, but not as drawish as with only the two bishops.
+
             return ScaleFactor(46);
         }
         // Endings where weaker side can place his king in front of the opponent's

@@ -42,7 +42,7 @@ struct HistoryStats {
     Square from = from_sq(m);
     Square to = to_sq(m);
 
-    table[c][from][to] -= table[c][from][to] * abs(int(v)) / 340;
+    table[c][from][to] -= table[c][from][to] * abs(int(v)) / 324;
     table[c][from][to] += int(v) * 32;
   }
 
@@ -65,7 +65,7 @@ struct Stats {
   void update(Piece pc, Square to, Move m) { table[pc][to] = m; }
   void update(Piece pc, Square to, Value v) {
 
-    table[pc][to] -= table[pc][to] * abs(int(v)) / 982;
+    table[pc][to] -= table[pc][to] * abs(int(v)) / 936;
     table[pc][to] += int(v) * 32;
   }
 
@@ -95,7 +95,7 @@ public:
   MovePicker(const Position&, Move, Depth, Square);
   MovePicker(const Position&, Move, Depth, Search::Stack*);
 
-  Move next_move(bool skipQuiets);
+  Move next_move(bool skipQuiets = false);
 
 private:
   template<GenType> void score();

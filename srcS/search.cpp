@@ -1,3 +1,4 @@
+
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -67,6 +68,10 @@ namespace {
   // Different node types, used as a template parameter
   enum NodeType { NonPV, PV };
 
+  // Sizes and phases of the skip-blocks, used for distributing search depths across the threads
+  const int skipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+  const int skipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+
   // Razoring and futility margin based on depth
   const int razor_margin[4] = { 483, 570, 603, 554 };
   Value futility_margin(Depth d) { return Value(150 * d / ONE_PLY); }
@@ -131,6 +136,7 @@ namespace {
       }
     }
 
+
     int stableCnt;
     Key expectedPosKey;
     Move pv[3];
@@ -159,6 +165,7 @@ namespace {
 } // namespace
 
 
+
 /// Search::init() is called during startup to initialize various lookup tables
 
 void Search::init() {
@@ -167,7 +174,7 @@ void Search::init() {
       for (int d = 1; d < 64; ++d)
           for (int mc = 1; mc < 64; ++mc)
           {
-              double r = log(d) * log(mc) / 2;
+              double r = log(d) * log(mc) / 1.95;
 
               Reductions[NonPV][imp][d][mc] = int(std::round(r));
               Reductions[PV][imp][d][mc] = std::max(Reductions[NonPV][imp][d][mc] - 1, 0);
@@ -381,13 +388,10 @@ finalize:
   std::cout << sync_endl;
 }
 
-// Sizes and phases of the skip-blocks, used for distributing search depths across the threads.
-static int skipsize[20] = {1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4};
-static int phase   [20] = {0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7};
 
-// Thread::search() is the main iterative deepening loop. It calls search()
-// repeatedly with increasing depth until the allocated thinking time has been
-// consumed, the user stops the search, or the maximum search depth is reached.
+/// Thread::search() is the main iterative deepening loop. It calls search()
+/// repeatedly with increasing depth until the allocated thinking time has been
+/// consumed, the user stops the search, or the maximum search depth is reached.
 
 void Thread::search() {
 
@@ -398,8 +402,8 @@ void Thread::search() {
   MainThread* mainThread = (this == Threads.main() ? Threads.main() : nullptr);
 
   std::memset(ss-4, 0, 7 * sizeof(Stack));
-  for(int i = -4; i < 0; i++) 
-     (ss+i)->counterMoves = &this->counterMoveHistory[NO_PIECE][0]; // use as sentinel.
+  for(int i = 4; i > 0; i--)
+     (ss-i)->counterMoves = &this->counterMoveHistory[NO_PIECE][0]; // Use as sentinel
 
   bestValue = alpha = -VALUE_INFINITE;
   delta = VALUE_ZERO; // delta always >= 0
@@ -429,7 +433,6 @@ void Thread::search() {
   multiPV = std::min(multiPV, rootMoves.size());
   multipvSearch = multiPV > 1;
 
-  int hIdx = (idx - 1) % 20; // helper index, cycle after 20 threads
 
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   !Signals.stop
@@ -437,8 +440,13 @@ void Thread::search() {
          && (!Limits.depth || Threads.main()->rootDepth / ONE_PLY <= Limits.depth))
   {
       // skip half of the plies in blocks depending on game ply and helper index.
-      if (idx && ((rootDepth / ONE_PLY + rootPos.game_ply() + phase[hIdx]) / skipsize[hIdx]) % 2)
-          continue;
+      // Distribute search depths across the threads
+      if (idx)
+      {
+          int i = (idx - 1) % 20;
+          if (((rootDepth / ONE_PLY + rootPos.game_ply() + skipPhase[i]) / skipSize[i]) % 2)
+              continue;
+      }
 
       // Age out PV variability metric
       if (mainThread)
@@ -635,7 +643,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval;
     bool ttHit, inCheck, givesCheck, singularExtensionNode, improving;
-    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiet, advancePawns;
+    bool captureOrPromotion, doFullDepthSearch, moveCountPruning, skipQuiets, advancePawns;
     Piece moved_piece;
     int moveCount, quietCount;
 
@@ -760,7 +768,7 @@ namespace {
 
                 value =  v < -drawScore ? -VALUE_MATE + MAX_PLY + ss->ply
                        : v >  drawScore ?  VALUE_MATE - MAX_PLY - ss->ply
-                                        :  VALUE_DRAW + 3 * v * drawScore;
+                                        :  VALUE_DRAW + 2 * v * drawScore;
 
                 tte->save(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
                           std::min(DEPTH_MAX - ONE_PLY, depth + 6 * ONE_PLY),
@@ -912,12 +920,12 @@ namespace {
 
 moves_loop: // When in check search starts from here
 
-    const CounterMoveStats* cmh  = (ss-1)->counterMoves;
-    const CounterMoveStats* fmh  = (ss-2)->counterMoves;
-    const CounterMoveStats* fmh2 = (ss-4)->counterMoves;
+    const CounterMoveStats& cmh = *(ss-1)->counterMoves;
+    const CounterMoveStats& fmh = *(ss-2)->counterMoves;
+    const CounterMoveStats& fm2 = *(ss-4)->counterMoves;
     const bool cm_ok = is_ok((ss-1)->currentMove);
     const bool fm_ok = is_ok((ss-2)->currentMove);
-    const bool fm2_ok = is_ok((ss-4)->currentMove);
+    const bool f2_ok = is_ok((ss-4)->currentMove);
 
     MovePicker mp(pos, ttMove, depth, ss);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
@@ -932,8 +940,7 @@ moves_loop: // When in check search starts from here
                            && !excludedMove // Recursive singular search is not allowed
                            && (tte->bound() & BOUND_LOWER)
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
-
-	skipQuiet = false;
+    skipQuiets = false;
 	Color stm = pos.side_to_move();
 		if (stm == WHITE)
 		advancePawns = pos.pieces(stm, PAWN) << 8 & (Rank7BB | Rank8BB) & ~pos.pieces();
@@ -942,7 +949,8 @@ moves_loop: // When in check search starts from here
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
-    while ((move = mp.next_move(skipQuiet)) != MOVE_NONE)
+    // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
+    while ((move = mp.next_move(skipQuiets)) != MOVE_NONE)
     {
       assert(is_ok(move));
 
@@ -1033,7 +1041,7 @@ moves_loop: // When in check search starts from here
               extension = ONE_PLY;
       }
 
-	 skipQuiet = moveCountPruning && !rootNode && bestValue > VALUE_MATED_IN_MAX_PLY && !advancePawns;
+	 skipQuiets = moveCountPruning && !rootNode && bestValue > VALUE_MATED_IN_MAX_PLY && !advancePawns;
 
       // Calculate new depth for this move
       newDepth = depth - ONE_PLY + extension;
@@ -1050,17 +1058,19 @@ moves_loop: // When in check search starts from here
               && (!pos.advanced_pawn_push(move) || pos.non_pawn_material() >= 5000))
           {
               // Move count based pruning
-              if (moveCountPruning)
+              if (moveCountPruning) {
+                  skipQuiets = true;
                   continue;
+              }
 
               // Reduced depth of the next LMR search
               int lmrDepth = std::max(newDepth - reduction<PvNode>(improving, depth, moveCount), DEPTH_ZERO) / ONE_PLY;
 
               // Countermoves based pruning
               if (   lmrDepth < 3
-                  && (((*cmh )[moved_piece][to_sq(move)] < VALUE_ZERO) || !cm_ok)
-                  && (((*fmh )[moved_piece][to_sq(move)] < VALUE_ZERO) || !fm_ok)
-                  && (((*fmh2)[moved_piece][to_sq(move)] < VALUE_ZERO) || !fm2_ok || (cm_ok && fm_ok)))
+                  && ((cmh[moved_piece][to_sq(move)] < VALUE_ZERO) || !cm_ok)
+                  && ((fmh[moved_piece][to_sq(move)] < VALUE_ZERO) || !fm_ok)
+                  && ((fm2[moved_piece][to_sq(move)] < VALUE_ZERO) || !f2_ok || (cm_ok && fm_ok)))
                   continue;
 
               // Futility pruning: parent node
@@ -1122,9 +1132,9 @@ moves_loop: // When in check search starts from here
                        && !pos.see_ge(make_move(to_sq(move), from_sq(move)),  VALUE_ZERO))
                   r -= 2 * ONE_PLY;
 
-              ss->history =  (*cmh )[moved_piece][to_sq(move)]
-                           + (*fmh )[moved_piece][to_sq(move)]
-                           + (*fmh2)[moved_piece][to_sq(move)]
+              ss->history =  cmh[moved_piece][to_sq(move)]
+                           + fmh[moved_piece][to_sq(move)]
+                           + fm2[moved_piece][to_sq(move)]
                            + thisThread->history.get(~pos.side_to_move(), move)
                            - 4000; // Correction factor
 
@@ -1521,7 +1531,6 @@ moves_loop: // When in check search starts from here
           : v <= VALUE_MATED_IN_MAX_PLY ? v - ply : v;
   }
 
-
   // value_from_tt() is the inverse of value_to_tt(): It adjusts a mate score
   // from the transposition table (which refers to the plies to mate/be mated
   // from current position) to "plies to mate/be mated from the root".
@@ -1543,16 +1552,14 @@ moves_loop: // When in check search starts from here
     *pv = MOVE_NONE;
   }
 
-
   // update_cm_stats() updates countermove and follow-up move history
 
   void update_cm_stats(Stack* ss, Piece pc, Square s, Value bonus) {
 
     for (int i : {1, 2, 4})
-         if (is_ok((ss-i)->currentMove))
-             (ss-i)->counterMoves->update(pc, s, bonus);
+        if (is_ok((ss-i)->currentMove))
+            (ss-i)->counterMoves->update(pc, s, bonus);
   }
-
 
   // update_stats() updates move sorting heuristics when a new quiet best move is found
 
@@ -1646,7 +1653,6 @@ moves_loop: // When in check search starts from here
   }
 
 } // namespace
-
 
 /// UCI::pv() formats PV information according to the UCI protocol. UCI requires
 /// that all (if any) unsearched PV lines are sent using a previous search score.

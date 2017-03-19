@@ -142,16 +142,16 @@ void MovePicker::score<QUIETS>() {
 
   const HistoryStats& history = pos.this_thread()->history;
 
-  const CounterMoveStats* cmh = (ss-1)->counterMoves;
-  const CounterMoveStats* fmh = (ss-2)->counterMoves;
-  const CounterMoveStats* fmh2 = (ss-4)->counterMoves;
+  const CounterMoveStats& cmh = *(ss-1)->counterMoves;
+  const CounterMoveStats& fmh = *(ss-2)->counterMoves;
+  const CounterMoveStats& fm2 = *(ss-4)->counterMoves;
 
   Color c = pos.side_to_move();
 
   for (auto& m : *this)
-      m.value =   (*cmh)[pos.moved_piece(m)][to_sq(m)]
-               +  (*fmh)[pos.moved_piece(m)][to_sq(m)]
-               + (*fmh2)[pos.moved_piece(m)][to_sq(m)]
+      m.value =  cmh[pos.moved_piece(m)][to_sq(m)]
+               + fmh[pos.moved_piece(m)][to_sq(m)]
+               + fm2[pos.moved_piece(m)][to_sq(m)]
                + history.get(c, m);
 }
 
@@ -178,13 +178,6 @@ void MovePicker::score<EVASIONS>() {
 Move MovePicker::next_move(bool skipQuiets) {
 
   Move move;
-
-  if (skipQuiets && (stage == QUIET || stage == QUIET_INIT))
-  {
-	  cur = moves;
-		  stage = BAD_CAPTURES;
-  }
-	 
 
   switch (stage) {
 
@@ -255,9 +248,11 @@ Move MovePicker::next_move(bool skipQuiets) {
       ++stage;
 
   case QUIET:
-      while (cur < endMoves)
+      while (    cur < endMoves
+             && (!skipQuiets || cur->value >= VALUE_ZERO))
       {
           move = *cur++;
+
           if (   move != ttMove
               && move != ss->killers[0]
               && move != ss->killers[1]
