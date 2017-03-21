@@ -27,6 +27,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <iostream>
 
 #include "material.h"
 #include "movepick.h"
@@ -80,9 +81,11 @@ public:
 struct MainThread : public Thread {
   virtual void search();
 
-  bool easyMovePlayed, failedLow, newPVIdx;
-  double bestMoveChanges;
+  bool easyMovePlayed, failedLow;
+  double bestMoveChanges, dynamicContempt;
   Value previousScore;
+
+  void update(SearchStage s);
 };
 
 

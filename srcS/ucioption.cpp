@@ -47,14 +47,13 @@ void on_threads(const Option&) { Threads.read_uci_options(); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 void on_brainbook_path(const Option& o) { tzbook.init(o); }
 void on_book_move2_prob(const Option& o) { tzbook.set_book_move2_probability(o); }
-
-
 /// Our case insensitive less() function as required by UCI protocol
 bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
 
   return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
          [](char c1, char c2) { return tolower(c1) < tolower(c2); });
 }
+
 
 
 /// init() initializes the UCI options to their hard-coded default values
@@ -71,6 +70,7 @@ void init(OptionsMap& o) {
   o["Contempt"]              << Option(0, -100, 100);
   o["OwnBook"]               << Option(false);
   o["Threads"]               << Option(n, 1, 128, on_threads);
+  o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
   o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]            << Option(on_clear_hash);
   o["Ponder"]                << Option(false);
@@ -89,14 +89,13 @@ void init(OptionsMap& o) {
   o["Threats(mg)"]           << Option(100, 0, 300, on_eval);
   o["Threats(eg)"]           << Option(100, 0, 300, on_eval);
   o["Space"]                 << Option(100, 0, 300, on_eval);
-  o["ExtendChecks"]          << Option(false);
   o["Razoring"]              << Option(true);
   o["Futility"]              << Option(true);
   o["NullMove"]              << Option(true);
   o["ProbCut"]               << Option(true);
   o["Pruning"]               << Option(true);
   o["LMR"]                   << Option(true);
-  o["TuneLMR"]               << Option(10, 0, 20);
+  o["MaxLMR"]                << Option(10, 0, 20);
   o["MultiPV"]               << Option(1, 1, 500);
   o["Skill Level"]           << Option(20, 0, 20);
   o["Best Book Move"]        << Option(false);
@@ -104,34 +103,21 @@ void init(OptionsMap& o) {
   o["Move Overhead"]         << Option(30, 0, 5000);
   o["Minimum Thinking Time"] << Option(20, 0, 5000);
   o["Large Pages"]           << Option(true, on_large_pages);
-  o["Slow Mover"]            << Option(89, 10, 1000);
+  o["Slow Mover"]            << Option(95, 10, 1000);
   o["nodestime"]             << Option(0, 0, 10000);
   o["UCI_Chess960"]          << Option(false);
   o["SyzygyPath"]            << Option("<empty>", on_tb_path);
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(6, 0, 6);
-  
-  o["winning_optimism_pieces_us"]    << Option(6, -100, 100);
-  o["winning_optimism_pawns_us"]     << Option(2, -100, 100);
-  o["winning_optimism_mobility_us"]  << Option(0, -100, 100);
-  
-  o["winning_optimism_pieces_them"]    << Option(0, -100, 100);
-  o["winning_optimism_pawns_them"]     << Option(1, -100, 100);
-  o["winning_optimism_mobility_them"]  << Option(-8, -100, 100);
-  
-  o["losing_optimism_pieces_us"]    << Option(-13, -100, 100);
-  o["losing_optimism_pawns_us"]     << Option(5, -100, 100);
-  o["losing_optimism_mobility_us"]  << Option(-7, -100, 100);
-  
-  o["losing_optimism_pieces_them"]    << Option(0, -100, 100);
-  o["losing_optimism_pawns_them"]     << Option(5, -100, 100);
-  o["losing_optimism_mobility_them"]  << Option(-5, -100, 100);
-
   o["Book Move2 Probability"]         << Option(0, 0, 100, on_book_move2_prob);
   o["BookPath"]                       << Option("<empty>", on_brainbook_path);
-
+  
+  
 }
+
+
+
 /// operator<<() is used to print all the options default values in chronological
 /// insertion order (the idx field) and in the format defined by the UCI protocol.
 

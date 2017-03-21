@@ -41,8 +41,8 @@ typedef bool(*fun3_t)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <thread>
 
+#include <thread>
 #include "misc.h"
 #include "thread.h"
 
@@ -52,7 +52,7 @@ namespace {
 
 /// Version number. If Version is left empty, then compile date in the format
 /// DD-MM-YY and show in engine_info.
-static const string Version = "";
+static const string Version = "b";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -125,7 +125,7 @@ const string engine_info(bool to_uci) {
 
   unsigned int n = std::thread::hardware_concurrency();
 
-  ss << "SugaR " << Version << setfill('0');
+  ss << "SugaR XPrO 1.0" << Version << setfill('0');
 
 
   if (Version.empty())
@@ -143,7 +143,7 @@ const string engine_info(bool to_uci) {
      << (to_uci ? "" : "\n\n ")
 	 << (to_uci ? "" : std::to_string(n))
 	 << (to_uci ? "" : " processor(s) found")
-	 << (to_uci ? "" : "\nDevelopment Versions");
+	 << (to_uci ? "" : "\n");
 	 
 	 return ss.str();
 }
@@ -222,6 +222,7 @@ void prefetch2(void* addr) {
 }
 
 namespace WinProcGroup {
+
 #ifndef _WIN32
 
 void bindThisThread(size_t) {}

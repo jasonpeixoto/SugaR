@@ -157,6 +157,11 @@ enum Phase {
   MG = 0, EG = 1, PHASE_NB = 2
 };
 
+enum SearchStage {
+  MAIN_THREAD_SEARCH = 0,
+  SEARCH = 1
+};
+
 enum ScaleFactor {
   SCALE_FACTOR_DRAW    = 0,
   SCALE_FACTOR_ONEPAWN = 48,
@@ -256,14 +261,6 @@ enum Rank : int {
   RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
 };
 
-// Evaluation terms, the first 8 entries are for PieceType
-enum Term {
-  MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSED, SPACE, TOTAL, TERM_NB
-};
-
-enum Strategy {
-  WINNING, LOSING, STRATEGY_NB
-};
 
 /// Score enum stores a middlegame and an endgame value in a single integer
 /// (enum). The least significant 16 bits are used to store the endgame value

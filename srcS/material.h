@@ -56,7 +56,6 @@ struct Entry {
   }
 
   Key key;
-
   EndgameBase<Value>* evaluationFunction;
   EndgameBase<ScaleFactor>* scalingFunction[COLOR_NB]; // Could be one for each
                                                        // side (e.g. KPKP, KBPsKs)
