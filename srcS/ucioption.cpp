@@ -31,6 +31,7 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 #include "tzbook.h"
+
 using std::string;
 
 UCI::OptionsMap Options; // Global object
@@ -71,7 +72,6 @@ void init(OptionsMap& o) {
   o["OwnBook"]                << Option(false);
   o["Threads"]                << Option(n, 1, 128, on_threads);
   o["Hash"]                   << Option(16, 1, MaxHashMB, on_hash_size);
-  o["Hash"]                   << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]             << Option(on_clear_hash);
   o["Ponder"]                 << Option(false);
   o["Material(mg)"]           << Option(100, 0, 300, on_eval);
@@ -110,6 +110,7 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]       << Option(1, 1, 100);
   o["Syzygy50MoveRule"]       << Option(true);
   o["SyzygyProbeLimit"]       << Option(6, 0, 6);
+  o["Cerebellum Library"]     << Option();
   o["Book Move2 Probability"] << Option(0, 0, 100, on_book_move2_prob);
   o["BookPath"]               << Option("<empty>", on_brainbook_path);
   
