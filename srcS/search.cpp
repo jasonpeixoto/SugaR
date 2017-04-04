@@ -937,6 +937,7 @@ moves_loop: // When in check search starts from here
 	  // Step 12. Extensions
 	  // Extend checks
 	  else if (givesCheck
+	  			       && !excludedMove
 		  && !moveCountPruning
 		  &&  pos.see_ge(move, VALUE_ZERO))
 		  extension = ONE_PLY;
