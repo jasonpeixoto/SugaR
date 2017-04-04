@@ -69,7 +69,7 @@ struct Stats {
   void update(Piece pc, Square to, Move m) { table[pc][to] = m; }
   void update(Piece pc, Square to, Value v) {
 
-    const int denom = 30764;
+    const int denom = 30358;
 
     assert(abs(int(v)) <= denom); // Needed for stability.
 
