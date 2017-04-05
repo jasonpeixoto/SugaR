@@ -42,12 +42,12 @@ struct HistoryStats {
     Square from = from_sq(m);
     Square to = to_sq(m);
 
-    const int denom = 10313;
+    const int denom = 324;
 
     assert(abs(int(v)) <= denom); // Needed for stability.
 
     table[c][from][to] -= table[c][from][to] * abs(int(v)) / denom;
-    table[c][from][to] += int(v);
+    table[c][from][to] += int(v) * 32;
   }
 
 private:
@@ -69,12 +69,12 @@ struct Stats {
   void update(Piece pc, Square to, Move m) { table[pc][to] = m; }
   void update(Piece pc, Square to, Value v) {
 
-    const int denom = 30358;
+    const int denom = 936;
 
     assert(abs(int(v)) <= denom); // Needed for stability.
 
     table[pc][to] -= table[pc][to] * abs(int(v)) / denom;
-    table[pc][to] += int(v);
+    table[pc][to] += int(v) * 32;
   }
 
 private:

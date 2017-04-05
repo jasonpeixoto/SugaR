@@ -83,8 +83,8 @@ namespace {
 
   // History and stats update bonus, based on depth
   Value stat_bonus(Depth depth) {
-    int d = depth / ONE_PLY;
-    return d > 17 ? VALUE_ZERO : Value(24 * d * d + 4 * d * msb(d * d) + 94 * d - 41);
+    int d = depth / ONE_PLY ;
+    return d > 17 ? VALUE_ZERO : Value(d * d + 2 * d - 2);
   }
 
   // Skill structure is used to implement strength limit
@@ -100,7 +100,7 @@ namespace {
   };
 
   // EasyMoveManager structure is used to detect an 'easy move'. When the PV is stable
-  // across multiple search iterations, we can quickly return the best move.
+  // stable across multiple search iterations, we can quickly return the best move.
   struct EasyMoveManager {
 
     void clear() {
@@ -1037,7 +1037,7 @@ moves_loop: // When in check search starts from here
                            + fmh[moved_piece][to_sq(move)]
                            + fm2[moved_piece][to_sq(move)]
                            + thisThread->history.get(~pos.side_to_move(), move)
-                           - 3900; // Correction factor
+                           - 4000; // Correction factor
 
               // Decrease/increase reduction by comparing opponent's stat score
               if (ss->history > VALUE_ZERO && (ss-1)->history < VALUE_ZERO)
@@ -1047,7 +1047,7 @@ moves_loop: // When in check search starts from here
                   r += ONE_PLY;
 
               // Decrease/increase reduction for moves with a good/bad history
-              r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->history / 18700) * ONE_PLY);
+              r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->history / 20000) * ONE_PLY);
           }
 		  
           // Set maximum reduction
