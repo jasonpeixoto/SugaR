@@ -114,7 +114,6 @@ void init(OptionsMap& o) {
   o["Book Move2 Probability"] << Option(0, 0, 100, on_book_move2_prob);
   o["BookPath"]               << Option("<empty>", on_brainbook_path);
   
-  
 }
 
 

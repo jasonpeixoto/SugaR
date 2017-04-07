@@ -351,7 +351,6 @@ ifeq ($(comp),gcc)
 	endif
 endif
 
-
 ifeq ($(comp),mingw)
 	ifeq ($(KERNEL),Linux)
 	ifeq ($(optimize),yes)
@@ -467,6 +466,7 @@ profileclean:
 
 default:
 	help
+
 ### ==========================================================================
 ### Section 5. Private targets
 ### ==========================================================================
