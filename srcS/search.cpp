@@ -946,9 +946,6 @@ moves_loop: // When in check search starts from here
       newDepth = depth - ONE_PLY + extension;
 
       // Step 13. Pruning at shallow depth
-      newDepth = depth - ONE_PLY + extension;
-
-      // Step 13. Pruning at shallow depth
       if (    doPruning
           && !rootNode
           &&  pos.count<PAWN>(pos.side_to_move())
