@@ -100,7 +100,7 @@ namespace {
   };
 
   // EasyMoveManager structure is used to detect an 'easy move'. When the PV is stable
-  // stable across multiple search iterations, we can quickly return the best move.
+  // across multiple search iterations, we can quickly return the best move.
   struct EasyMoveManager {
 
     void clear() {
