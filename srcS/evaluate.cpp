@@ -222,10 +222,10 @@ namespace {
   const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 78, 56, 45, 11 };
 
   // Penalties for enemy's safe checks
-  const int QueenCheck        = 810;
-  const int RookCheck         = 888;
-  const int BishopCheck       = 400;
-  const int KnightCheck       = 790;
+  const int QueenCheck  = 780;
+  const int RookCheck   = 880;
+  const int BishopCheck = 435;
+  const int KnightCheck = 790;
 
   // Threshold for lazy evaluation
   const Value LazyThreshold = Value(1500);
@@ -441,11 +441,11 @@ namespace {
         // attacked and undefended squares around our king and the quality of
         // the pawn shelter (current 'score' value).
         kingDanger =        ei.kingAttackersCount[Them] * ei.kingAttackersWeight[Them]
-                    + 103 * ei.kingAdjacentZoneAttacksCount[Them]
-                    + 190 * popcount(undefended)
-                    + 142 * (popcount(b) + !!pos.pinned_pieces(Us))
-                    - 810 * !pos.count<QUEEN>(Them)
-                    -   6 * mg_value(score) / 5 - 5;
+                    + 102 * ei.kingAdjacentZoneAttacksCount[Them]
+                    + 201 * popcount(undefended)
+                    + 143 * (popcount(b) + !!pos.pinned_pieces(Us))
+                    - 848 * !pos.count<QUEEN>(Them)
+                    -  28 * mg_value(score) / 25 - 5;
 
         // Analyse the safe enemy's checks which are possible on next move
 
