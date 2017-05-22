@@ -1,4 +1,5 @@
 /*
+
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
@@ -138,9 +139,16 @@ namespace {
     Threads.start_thinking(pos, States, limits);
   }
 
+  // On ucinewgame following steps are needed to reset the state
+  void newgame() {
+
+    TT.resize(Options["Hash"]);
+    Search::clear();
+    Tablebases::init(Options["SyzygyPath"]);
+    Time.availableNodes = 0;
+  }
+
 } // namespace
-
-
 /// UCI::loop() waits for a command from stdin, parses it and calls the appropriate
 /// function. Also intercepts EOF from stdin to ensure gracefully exiting if the
 /// GUI dies unexpectedly. When called with some command line arguments, e.g. to
