@@ -198,8 +198,11 @@ void Search::clear() {
       th->counterMoves.clear();
       th->history.clear();
       th->counterMoveHistory.clear();
-      th->counterMoveHistory[NO_PIECE][0].fill(CounterMovePruneThreshold-1);
       th->resetCalls = true;
+
+      CounterMoveStats& cm = th->counterMoveHistory[NO_PIECE][0];
+      auto* t = &cm[NO_PIECE][0];
+      std::fill(t, t + sizeof(cm)/sizeof(*t), CounterMovePruneThreshold - 1);
   }
 
   Threads.main()->previousScore = VALUE_INFINITE;
