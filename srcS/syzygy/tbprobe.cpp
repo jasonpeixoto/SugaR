@@ -16,6 +16,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -736,11 +737,13 @@ T do_probe_table(const Position& pos, Entry* entry, WDLScore wdl, ProbeState* re
     // Now we are ready to get all the position pieces (but the lead pawns) and
     // directly map them to the correct color and square.
     b = pos.pieces() ^ leadPawns;
-    while (b) {
+    do {
         Square s = pop_lsb(&b);
         squares[size] = s ^ flipSquares;
         pieces[size++] = Piece(pos.piece_on(s) ^ flipColor);
-    }
+    } while (b);
+
+    assert(size >= 2);
 
     // Then we reorder the pieces to have the same sequence as the one stored
     // in precomp->pieces[i]: the sequence that ensures the best compression.
@@ -1516,6 +1519,8 @@ static int has_repeated(StateInfo *st)
 // no moves were filtered out.
 bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& score)
 {
+    assert(rootMoves.size());
+
     ProbeState result;
     int dtz = probe_dtz(pos, &result);
 
@@ -1561,7 +1566,7 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 
     // Obtain 50-move counter for the root position.
     // In Stockfish there seems to be no clean way, so we do it like this:
-    int cnt50 = st.previous->rule50;
+    int cnt50 = st.previous ? st.previous->rule50 : 0;
 
     // Use 50-move counter to determine whether the root position is
     // won, lost or drawn.
