@@ -26,7 +26,6 @@
 #include <mutex>
 #include <thread>
 #include <vector>
-#include <iostream>
 
 #include "material.h"
 #include "movepick.h"
@@ -79,13 +78,13 @@ public:
 struct MainThread : public Thread {
   virtual void search();
   void check_time();
+
   bool easyMovePlayed, failedLow;
-  double bestMoveChanges, dynamicContempt;
+  double bestMoveChanges;
   Value previousScore;
   int callsCnt = 0;
-  
-  void update(SearchStage s);
 };
+
 
 /// ThreadPool struct handles all the threads-related stuff like init, starting,
 /// parking and, most importantly, launching a thread. All the access to threads
@@ -101,7 +100,7 @@ struct ThreadPool : public std::vector<Thread*> {
   void read_uci_options();
   uint64_t nodes_searched() const;
   uint64_t tb_hits() const;
-  
+
   std::atomic_bool stop, stopOnPonderhit;
 
 private:

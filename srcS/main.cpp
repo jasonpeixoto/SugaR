@@ -28,7 +28,6 @@
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 #include "tzbook.h"
-
 namespace PSQT {
   void init();
 }

@@ -157,11 +157,6 @@ enum Phase {
   MG = 0, EG = 1, PHASE_NB = 2
 };
 
-enum SearchStage {
-  MAIN_THREAD_SEARCH = 0,
-  SEARCH = 1
-};
-
 enum ScaleFactor {
   SCALE_FACTOR_DRAW    = 0,
   SCALE_FACTOR_ONEPAWN = 48,
@@ -188,7 +183,7 @@ enum Value : int {
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
 
-  PawnValueMg   = 171,   PawnValueEg   = 240,
+  PawnValueMg   = 188,   PawnValueEg   = 248,
   KnightValueMg = 764,   KnightValueEg = 848,
   BishopValueMg = 826,   BishopValueEg = 891,
   RookValueMg   = 1282,  RookValueEg   = 1373,

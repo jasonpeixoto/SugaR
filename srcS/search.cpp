@@ -142,11 +142,9 @@ namespace {
   };
 
   EasyMoveManager EasyMove;
+  bool cleanSearch = Options["Clean Search"];
   Value DrawValue[COLOR_NB];
 
-  bool doRazor, doFutility, doNull, doProbcut, doPruning, doLMR;
-  Depth maxLMR;
-  
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool skipEarlyPruning);
 
@@ -191,7 +189,8 @@ void Search::init() {
 /// Search::clear() resets search state to its initial value, to obtain reproducible results
 
 void Search::clear() {
-
+  if (Options["NeverClearHash"])
+	return;
   TT.clear();
 
   for (Thread* th : Threads)
@@ -248,17 +247,10 @@ void MainThread::search() {
   static PolyglotBook book; // Defined static to initialize the PRNG only once
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
+  if (!Limits.infinite)
   TT.new_search();
-
-
-  // Read search options
-  doRazor = Options["Razoring"];
-  doFutility = Options["Futility"];
-  doNull = Options["NullMove"];
-  doProbcut = Options["ProbCut"];
-  doPruning = Options["Pruning"];
-  doLMR = Options["LMR"];
-  maxLMR = Options["MaxLMR"] * ONE_PLY;
+  else
+	TT.infinite_search();
 
   if (rootMoves.empty())
   {
@@ -338,8 +330,9 @@ finalize:
       {
           Depth depthDiff = th->completedDepth - bestThread->completedDepth;
           Value scoreDiff = th->rootMoves[0].score - bestThread->rootMoves[0].score;
+		  int selDepthDiff = th->rootMoves[0].selDepth - bestThread->rootMoves[0].selDepth;
 
-          if (scoreDiff > 0 && depthDiff >= 0)
+          if (scoreDiff > 0 && (depthDiff >= 0 || depthDiff + selDepthDiff >= -1))
               bestThread = th;
       }
   }
@@ -374,12 +367,13 @@ void Thread::search() {
   for (int i = 4; i > 0; i--)
      (ss-i)->history = &this->counterMoveHistory[NO_PIECE][0]; // Use as sentinel
 
+  if (cleanSearch) 
+	  Search::clear();
+  
   bestValue = delta = alpha = -VALUE_INFINITE;
   beta = VALUE_INFINITE;
   completedDepth = DEPTH_ZERO;
   Color us = rootPos.side_to_move();
-  int contempt = Options["Contempt"] * PawnValueEg / 100; // From centipawns
-
   if (mainThread)
   {
       easyMove = EasyMove.get(rootPos.key());
@@ -392,6 +386,7 @@ void Thread::search() {
   Skill skill(Options["Skill Level"]);
 
   if (Options["Tactical Mode"]) multiPV=256;
+  
   // When playing with strength handicap enable MultiPV search that we will
   // use behind the scenes to retrieve a set of possible moves.
   if (skill.enabled())
@@ -399,14 +394,13 @@ void Thread::search() {
 
   multiPV = std::min(multiPV, rootMoves.size());
 
+  int contempt = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
+
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   (rootDepth += ONE_PLY) < DEPTH_MAX
          && !Threads.stop
          && !(Limits.depth && mainThread && rootDepth / ONE_PLY > Limits.depth))
   {
-      DrawValue[ us] = VALUE_DRAW - Value(contempt + std::round(Threads.main()->dynamicContempt));
-      DrawValue[~us] = VALUE_DRAW + Value(contempt + std::round(Threads.main()->dynamicContempt));
-
       // Distribute search depths across the threads
       if (idx)
       {
@@ -436,6 +430,7 @@ void Thread::search() {
               delta = Value(18);
               alpha = std::max(rootMoves[PVIdx].previousScore - delta,-VALUE_INFINITE);
               beta  = std::min(rootMoves[PVIdx].previousScore + delta, VALUE_INFINITE);
+			  contempt = Options["Contempt Factor"] * PawnValueEg / 100;
           }
 
           // Start with a small aspiration window and, in the case of a fail
@@ -444,6 +439,11 @@ void Thread::search() {
           while (true)
           {
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
+              
+              contempt += bestValue <= alpha && bestValue < VALUE_DRAW ? -int(delta / 4 + 5) 
+                        : bestValue >= beta  && bestValue > VALUE_DRAW ?  int(delta / 4 + 5) : 0;
+              DrawValue[ us] = VALUE_DRAW - Value(contempt);
+              DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -712,9 +712,9 @@ namespace {
             eval = ss->staticEval = evaluate(pos);
 
         // Can ttValue be used as a better position evaluation?
-        if (ttValue != VALUE_NONE)
+        if (ttValue != VALUE_NONE && !PvNode)
             if (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))
-                eval = ttValue;
+            eval = ttValue;
     }
     else
     {
@@ -730,8 +730,7 @@ namespace {
         goto moves_loop;
 
     // Step 6. Razoring (skipped when in check)
-    if (    doRazor
-        && !PvNode
+    if (   !PvNode
         &&  depth < 4 * ONE_PLY
         &&  eval + razor_margin[depth / ONE_PLY] <= alpha)
     {
@@ -745,9 +744,7 @@ namespace {
     }
 
     // Step 7. Futility pruning: child node (skipped when in check)
-    
-    if (    doFutility
-        && !rootNode
+    if (   !rootNode
         &&  depth < 7 * ONE_PLY
         &&  eval - futility_margin(depth) >= beta
         &&  eval < VALUE_KNOWN_WIN  // Do not return unproven wins
@@ -755,8 +752,7 @@ namespace {
         return eval;
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
-    if (    doNull
-        && !PvNode
+    if (   !PvNode
         &&  eval >= beta
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -796,8 +792,7 @@ namespace {
     // Step 9. ProbCut (skipped when in check)
     // If we have a good enough capture and a reduced search returns a value
     // much above beta, we can (almost) safely prune the previous move.
-    if (    doProbcut
-        && !PvNode
+    if (   !PvNode
         &&  depth >= 5 * ONE_PLY
         &&  abs(beta) < VALUE_MATE_IN_MAX_PLY)
     {
@@ -946,6 +941,11 @@ moves_loop: // When in check search starts from here
                   && (fmh[moved_piece][to_sq(move)] < CounterMovePruneThreshold))
                   continue;
 
+			  if (lmrDepth == 3
+				  && (cmh[moved_piece][to_sq(move)] < -10000)
+				  && (fmh[moved_piece][to_sq(move)] < -10000))
+				  continue;
+
               // Futility pruning: parent node
               if (   lmrDepth < 7
                   && !inCheck
@@ -985,8 +985,7 @@ moves_loop: // When in check search starts from here
 
       // Step 15. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
-      if (    doLMR
-	      &&  depth >= 3 * ONE_PLY
+      if (    depth >= 3 * ONE_PLY
           &&  moveCount > 1
           && (!captureOrPromotion || moveCountPruning))
       {
@@ -1027,11 +1026,6 @@ moves_loop: // When in check search starts from here
               // Decrease/increase reduction for moves with a good/bad history
               r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->statScore / 20000) * ONE_PLY);
           }
-
-		  
-          // Set maximum reduction
-          r = std::min(r, maxLMR);
-		  
           // The "Tactical Mode" option looks SugaR to look at more positions per search depth, but SugaR will play
           // weaker overall.  It also sets the "MultiPV" option to 256 to allow SugaR to look at more nodes per
           // depth and may help in analysis.
@@ -1039,7 +1033,6 @@ moves_loop: // When in check search starts from here
 		    r = DEPTH_ZERO;
 		
           Depth d = std::max(newDepth - r, ONE_PLY);
-
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, false);
 
           doFullDepthSearch = (value > alpha && d != newDepth);
@@ -1057,7 +1050,7 @@ moves_loop: // When in check search starts from here
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
-      if (PvNode && (moveCount == 1 || (value > alpha && (rootNode || value < beta))))
+      if (PvNode &&  (moveCount == 1 || (value > alpha)))
       {
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
@@ -1258,9 +1251,9 @@ moves_loop: // When in check search starts from here
                 ss->staticEval = bestValue = evaluate(pos);
 
             // Can ttValue be used as a better position evaluation?
-            if (ttValue != VALUE_NONE)
-                if (tte->bound() & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER))
-                    bestValue = ttValue;
+            if (   ttValue != VALUE_NONE
+                && (tte->bound() & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER)))
+                bestValue = ttValue;
         }
         else
             ss->staticEval = bestValue =
@@ -1386,7 +1379,8 @@ moves_loop: // When in check search starts from here
     if (InCheck && bestValue == -VALUE_INFINITE)
         return mated_in(ss->ply); // Plies to mate from the root
 
-    tte->save(posKey, value_to_tt(bestValue, ss->ply),
+    if(moveCount)
+	tte->save(posKey, value_to_tt(bestValue, ss->ply),
               PvNode && bestValue > oldAlpha ? BOUND_EXACT : BOUND_UPPER,
               ttDepth, bestMove, ss->staticEval, TT.generation());
 

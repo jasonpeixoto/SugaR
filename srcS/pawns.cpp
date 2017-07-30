@@ -171,8 +171,10 @@ namespace {
         // Score this pawn
         if (supported | phalanx)
             score += Connected[opposed][!!phalanx][popcount(supported)][relative_rank(Us, s)];
+
         else if (!neighbours)
             score -= Isolated[opposed];
+
         else if (backward)
             score -= Backward[opposed];
 
@@ -227,6 +229,7 @@ Entry* probe(const Position& pos) {
   e->score = evaluate<WHITE>(pos, e) - evaluate<BLACK>(pos, e);
   e->asymmetry = popcount(e->semiopenFiles[WHITE] ^ e->semiopenFiles[BLACK]);
   e->openFiles = popcount(e->semiopenFiles[WHITE] & e->semiopenFiles[BLACK]);
+
   return e;
 }
 

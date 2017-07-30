@@ -41,7 +41,6 @@ typedef bool(*fun3_t)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
 #include <iostream>
 #include <sstream>
 #include <vector>
-
 #include <thread>
 #include "misc.h"
 #include "thread.h"
@@ -118,14 +117,15 @@ public:
 /// Version is empty.
 
 const string engine_info(bool to_uci) {
+	    unsigned int n = std::thread::hardware_concurrency();
+    std::cout << n << " Threads are supported.\n";
 
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
   string month, day, year;
   stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  unsigned int n = std::thread::hardware_concurrency();
+  ss << "SugaR XPrO 1.2" << Version << setfill('0');
 
-  ss << "SugaR XPrO 1.1" << Version << setfill('0');
 
   if (Version.empty())
   {
@@ -135,15 +135,12 @@ const string engine_info(bool to_uci) {
 
   ss << (Is64Bit ? " 64" : " 32")
      << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
-     << (to_uci  ? "\nid author ": " by ")
-     << "Marco Zerbinati (c) 2017\n"
 	 << (to_uci ? "" : "\n");
-  ss << "Free UCI chess playing engine derived from Stockfish\n"
-     << (to_uci ? "" : "\n ")
-	 << (to_uci ? "" : std::to_string(n))
-	 << (to_uci ? "" : " processor(s) found")
-	 << (to_uci ? "" : "\n");
-	 
+  ss << (to_uci  ? "\nid author ": "by ")
+     << "Marco Zerbinati ";
+  ss << (to_uci ? "" : "(c) 2017\n")
+	 << (to_uci ? "" : "Free UCI chess playing engine derived from Stockfish\n");
+ 
 	 return ss.str();
 }
 /// Debug functions used mainly to collect run-time statistics

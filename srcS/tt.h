@@ -43,9 +43,9 @@ struct TTEntry {
   Bound bound() const { return (Bound)(genBound8 & 0x3); }
 
   void save(Key k, Value v, Bound b, Depth d, Move m, Value ev, uint8_t g) {
-	  
+
     assert(d / ONE_PLY * ONE_PLY == d);
-	
+
     // Preserve any existing move for the same position
     if (m || (k >> 48) != key16)
         move16 = (uint16_t)m;
@@ -99,11 +99,16 @@ public:
   TranspositionTable() { mbSize_last_used = 0;  mbSize_last_used = 0; }
  ~TranspositionTable() {}
   void new_search() { generation8 += 4; } // Lower 2 bits are used by Bound
+  void infinite_search() { generation8 = 4; }
   uint8_t generation() const { return generation8; }
   TTEntry* probe(const Key key, bool& found) const;
   int hashfull() const;
   void resize(size_t mbSize);
   void clear();
+  void set_hash_file_name(const std::string& fname);
+  bool save();
+  void load();
+  std::string hashfilename = "hash.hsh";
 
   // The lowest order bits of the key are used to get the index of the cluster
   TTEntry* first_entry(const Key key) const {
@@ -120,4 +125,5 @@ private:
 };
 
 extern TranspositionTable TT;
+
 #endif // #ifndef TT_H_INCLUDED

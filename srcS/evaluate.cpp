@@ -1,4 +1,3 @@
-
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -253,6 +252,7 @@ namespace {
   template<Tracing T> template<Color Us>
   void Evaluation<T>::initialize() {
 
+
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
     const Square Up   = (Us == WHITE ? NORTH : SOUTH);
     const Square Down = (Us == WHITE ? SOUTH : NORTH);
@@ -292,6 +292,7 @@ namespace {
 
   template<Tracing T>  template<Color Us, PieceType Pt>
   Score Evaluation<T>::evaluate_pieces() {
+
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     const Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
@@ -710,7 +711,6 @@ namespace {
     if (T)
         Trace::add(PASSED, Us, apply_weight(score, Weights[PassedPawns]));
 
-    // Add the scores to the middlegame and endgame eval
     return apply_weight(score, Weights[PassedPawns]);
   }
 
@@ -766,7 +766,9 @@ namespace {
     bool bothFlanks = (pos.pieces(PAWN) & QueenSide) && (pos.pieces(PAWN) & KingSide);
 
     // Compute the initiative bonus for the attacking side
-    int initiative = 8 * (pe->pawn_asymmetry() + kingDistance - 17) + 12 * pos.count<PAWN>() + 16 * bothFlanks;
+    int initiative =    8 * (pe->pawn_asymmetry() + kingDistance - 18) 
+                     + 12 * pos.count<PAWN>()
+                     + 16 * bothFlanks;
 
     // Now apply the bonus: note that we find the attacking side by extracting
     // the sign of the endgame value, and that we carefully cap the bonus so
@@ -833,12 +835,13 @@ namespace {
     // Initialize score by reading the incrementally updated scores included in
     // the position object (material + piece square tables) and the material
     // imbalance. Score is computed internally from the white point of view.
-  Score score =  apply_weight(pos.psq_score(), Weights[MaterialT])
-               + apply_weight(me->imbalance(), Weights[Imbalance]);
-  // Probe the pawn hash table
+    Score score =  apply_weight(pos.psq_score(), Weights[MaterialT])
+	             + apply_weight(me->imbalance(), Weights[Imbalance]);
+
+    // Probe the pawn hash table
     pe = Pawns::probe(pos);
-  score += apply_weight(pe->pawns_score(), Weights[PawnStructure]);
-	
+	score += apply_weight(pe->pawns_score(), Weights[PawnStructure]);
+
     // Early exit if score is high
     Value v = (mg_value(score) + eg_value(score)) / 2;
     if (abs(v) > LazyThreshold)
@@ -854,7 +857,8 @@ namespace {
     score += evaluate_pieces<WHITE, ROOK  >() - evaluate_pieces<BLACK, ROOK  >();
     score += evaluate_pieces<WHITE, QUEEN >() - evaluate_pieces<BLACK, QUEEN >();
 
-  score += apply_weight(mobility[WHITE] - mobility[BLACK], Weights[Mobility]);
+    score += apply_weight(mobility[WHITE] - mobility[BLACK], Weights[Mobility]);  // Evaluate kings after all other pieces because we need full attack
+
     score +=  evaluate_king<WHITE>()
             - evaluate_king<BLACK>();
 
@@ -885,11 +889,11 @@ namespace {
       Trace::add(PAWN, apply_weight(pe->pawns_score(), Weights[PawnStructure]));
       Trace::add(MOBILITY, apply_weight(mobility[WHITE], Weights[Mobility]),
                            apply_weight(mobility[BLACK], Weights[Mobility]));
-	  if (pos.non_pawn_material() >= SpaceThreshold)
-
+		
+        if (pos.non_pawn_material() >= SpaceThreshold)
           Trace::add(SPACE, apply_weight(evaluate_space<WHITE>(), Weights[Space])
                           , apply_weight(evaluate_space<BLACK>(), Weights[Space]));
-      Trace::add(TOTAL, score);
+        Trace::add(TOTAL, score);
     }
 
     return (pos.side_to_move() == WHITE ? v : -v) + Eval::Tempo; // Side to move point of view
@@ -942,19 +946,18 @@ std::string Eval::trace(const Position& pos) {
   return ss.str();
 }
 
-
 namespace Eval {
 
   // init() reads evaluation weights from the corresponding UCI parameters
   void init() {
 
-      Weights[MaterialT]     = { Options["Material(mg)"], Options["Material(eg)"] };
-      Weights[Imbalance]     = { Options["Imbalance(mg)"], Options["Imbalance(eg)"] };
-      Weights[PawnStructure] = { Options["PawnStructure(mg)"], Options["PawnStructure(eg)"] };
-      Weights[Mobility]      = { Options["Mobility(mg)"], Options["Mobility(eg)"] };
-      Weights[PassedPawns]   = { Options["PassedPawns(mg)"], Options["PassedPawns(eg)"] };
-      Weights[KingSafety]    = { Options["KingSafety(mg)"], Options["KingSafety(eg)"] };
-      Weights[Threats]       = { Options["Threats(mg)"], Options["Threats(eg)"] };
+      Weights[MaterialT]     = { Options["Material (Midgame)"], Options["Material (Endgame)"] };
+      Weights[Imbalance]     = { Options["Imbalance (Midgame)"], Options["Imbalance (Endgame)"] };
+      Weights[PawnStructure] = { Options["Pawn Structure (Midgame)"], Options["Pawn Structure (Endgame)"] };
+      Weights[Mobility]      = { Options["Mobility (Midgame)"], Options["Mobility (Endgame)"] };
+      Weights[PassedPawns]   = { Options["Passed Pawns (Midgame)"], Options["Passed Pawns (Endgame)"] };
+      Weights[KingSafety]    = { Options["King Safety (Midgame)"], Options["King Safety (Endgame)"] };
+      Weights[Threats]       = { Options["Threats (Midgame)"], Options["Threats (Endgame)"] };
       Weights[Space]         = { Options["Space"], 0 };
   }
 }

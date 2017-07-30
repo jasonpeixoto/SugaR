@@ -115,14 +115,6 @@ void Thread::idle_loop() {
   }
 }
 
-void MainThread::update(SearchStage s){
-    if(s == SEARCH)
-      ++bestMoveChanges;
-    else if (s == MAIN_THREAD_SEARCH)
-        bestMoveChanges *= 0.505;
-  dynamicContempt = bestMoveChanges < 0.267? 46 * (0.267 - bestMoveChanges): 0;
-}
-
 
 /// ThreadPool::init() creates and launches requested threads that will go
 /// immediately to sleep. We cannot use a constructor because Threads is a
