@@ -1,3 +1,4 @@
+
 /*
   SugaR, a UCI chess playing engine derived from Stockfish
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
@@ -309,13 +310,13 @@ finalize:
   // the UCI protocol states that we shouldn't print the best move before the
   // GUI sends a "stop" or "ponderhit" command. We therefore simply wait here
   // until the GUI sends one of those commands (which also raises Threads.stop).
-  if (!Threads.stop && (Limits.ponder || Limits.infinite))
-  {
-      Threads.stopOnPonderhit = true;
-      wait(Threads.stop);
-  }
+  Threads.stopOnPonderhit = true;
 
-  // Stop the threads if not already stopped
+  while (!Threads.stop && (Threads.ponder || Limits.infinite))
+  {} // Busy wait for a stop or a ponder reset
+
+  // Stop the threads if not already stopped (also raise the stop if
+  // "ponderhit" just reset Threads.ponder).
   Threads.stop = true;
 
   // Wait until all threads have finished
@@ -398,6 +399,7 @@ void Thread::search() {
       multiPV = std::max(multiPV, (size_t)4);
 
   multiPV = std::min(multiPV, rootMoves.size());
+
 
   int contempt = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
 
@@ -545,7 +547,7 @@ void Thread::search() {
               {
                   // If we are allowed to ponder do not stop the search now but
                   // keep pondering until the GUI sends "ponderhit" or "stop".
-                  if (Limits.ponder)
+                  if (Threads.ponder)
                       Threads.stopOnPonderhit = true;
                   else
                       Threads.stop = true;
@@ -1527,7 +1529,7 @@ moves_loop: // When in check search starts from here
     }
 
     // An engine may not stop pondering until told so by the GUI
-    if (Limits.ponder)
+    if (Threads.ponder)
         return;
 
     if (   (Limits.use_time_management() && elapsed > Time.maximum() - 10)
