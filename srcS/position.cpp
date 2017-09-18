@@ -162,9 +162,7 @@ void Position::init() {
 Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Thread* th) {
 /*
    A FEN string defines a particular position using only the ASCII character set.
-
    A FEN string contains six fields separated by a space. The fields are:
-
    1) Piece placement (from white's perspective). Each rank is described, starting
       with rank 8 and ending with rank 1. Within each rank, the contents of each
       square are described from file A through file H. Following the Standard
@@ -173,24 +171,19 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
       letters ("PNBRQK") whilst Black uses lowercase ("pnbrqk"). Blank squares are
       noted using digits 1 through 8 (the number of blank squares), and "/"
       separates ranks.
-
    2) Active color. "w" means white moves next, "b" means black.
-
    3) Castling availability. If neither side can castle, this is "-". Otherwise,
       this has one or more letters: "K" (White can castle kingside), "Q" (White
       can castle queenside), "k" (Black can castle kingside), and/or "q" (Black
       can castle queenside).
-
    4) En passant target square (in algebraic notation). If there's no en passant
       target square, this is "-". If a pawn has just made a 2-square move, this
       is the position "behind" the pawn. This is recorded only if there is a pawn
       in position to make an en passant capture, and if there really is a pawn
       that might have advanced two squares.
-
    5) Halfmove clock. This is the number of halfmoves since the last pawn advance
       or capture. This is used to determine if a draw can be claimed under the
       fifty-move rule.
-
    6) Fullmove number. The number of the full move. It starts at 1, and is
       incremented after Black's move.
 */
@@ -272,7 +265,7 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   // 5-6. Halfmove clock and fullmove number
   ss >> std::skipws >> st->rule50 >> gamePly;
 
-  // Convert from fullmove starting from 1 to ply starting from 0,
+  // Convert from fullmove starting from 1 to gamePly starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
   gamePly = std::max(2 * (gamePly - 1), 0) + (sideToMove == BLACK);
 
@@ -993,10 +986,8 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   assert(is_ok(m));
 
-  // Castling moves are implemented as king capturing the rook so cannot be
-  // handled correctly. Simply assume the SEE value is VALUE_ZERO that is always
-  // correct unless in the rare case the rook ends up under attack.
-  if (type_of(m) == CASTLING)
+  // Only deal with normal moves, assume others pass a simple see
+  if (type_of(m) != NORMAL)
       return VALUE_ZERO >= threshold;
 
   Square from = from_sq(m), to = to_sq(m);
@@ -1005,30 +996,18 @@ bool Position::see_ge(Move m, Value threshold) const {
   Value balance; // Values of the pieces taken by us minus opponent's ones
   Bitboard occupied, stmAttackers;
 
-  if (type_of(m) == ENPASSANT)
-  {
-      occupied = SquareBB[to - pawn_push(~stm)]; // Remove the captured pawn
-      balance = PieceValue[MG][PAWN];
-  }
-  else
-  {
-      balance = PieceValue[MG][piece_on(to)];
-      occupied = 0;
-  }
+  balance = PieceValue[MG][piece_on(to)];
 
   if (balance < threshold)
       return false;
 
-  if (nextVictim == KING)
-      return true;
-
   balance -= PieceValue[MG][nextVictim];
 
-  if (balance >= threshold)
+  if (balance >= threshold) // Always true if nextVictim == KING
       return true;
 
   bool relativeStm = true; // True if the opponent is to move
-  occupied ^= pieces() ^ from ^ to;
+  occupied = pieces() ^ from ^ to;
 
   // Find all attackers to the destination square, with the moving piece removed,
   // but possibly an X-ray attacker added behind it.
@@ -1085,11 +1064,10 @@ bool Position::is_draw(int ply) const {
   {
       stp = stp->previous->previous;
 
-      // At root position ply is 1, so return a draw score if a position
-      // repeats once earlier but strictly after the root, or repeats twice
-      // before or at the root.
+      // Return a draw score if a position repeats once earlier but strictly
+      // after the root, or repeats twice before or at the root.
       if (   stp->key == st->key
-          && ++cnt + (ply - 1 > i) == 2)
+          && ++cnt + (ply > i) == 2)
           return true;
   }
 

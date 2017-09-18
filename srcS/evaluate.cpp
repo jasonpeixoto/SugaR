@@ -29,6 +29,7 @@
 #include "material.h"
 #include "pawns.h"
 #include "uci.h"
+
 namespace {
 
   namespace Trace {
@@ -78,7 +79,7 @@ namespace {
 
   public:
     Evaluation() = delete;
-    Evaluation(const Position& p) : pos(p) {};
+    Evaluation(const Position& p) : pos(p) {}
     Evaluation& operator=(const Evaluation&) = delete;
 
     Value value();
@@ -166,8 +167,8 @@ namespace {
   // supported by a pawn. If the minor piece occupies an outpost square
   // then score is doubled.
   const Score Outpost[][2] = {
-    { S(22, 6), S(35, 9) }, // Knight
-    { S( 9, 2), S(14, 4) }  // Bishop
+    { S(22, 6), S(36,12) }, // Knight
+    { S( 9, 2), S(15, 5) }  // Bishop
   };
 
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is no
@@ -218,19 +219,17 @@ namespace {
   const Score ThreatBySafePawn    = S(182,175);
   const Score ThreatByRank        = S( 16,  3);
   const Score Hanging             = S( 48, 27);
+  const Score WeakUnopposedPawn   = S(  5, 25);
   const Score ThreatByPawnPush    = S( 38, 22);
   const Score HinderPassedPawn    = S(  7,  0);
 
-  // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
-  // a friendly pawn on b2/g2 (b7/g7 for black). This can obviously only
-  // happen in Chess960 games.
-  const Score TrappedBishopA1H1 = S(50, 50);
+  const Score TrappedBishopA1H1   = S( 50, 50);
 
   #undef S
   #undef V
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
-  const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 78, 56, 45, 11 };
+  const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 5, 78, 56, 45, 11 };
 
   // Penalties for enemy's safe checks
   const int QueenCheck  = 780;
@@ -246,12 +245,12 @@ namespace {
   Score apply_weight(Score v, const Weight& w) {
     return make_score(mg_value(v) * w.mg / 100, eg_value(v) * w.eg / 100);
   }
+
   // initialize() computes king and pawn attacks, and the king ring bitboard
   // for a given color. This is done at the beginning of the evaluation.
 
   template<Tracing T> template<Color Us>
   void Evaluation<T>::initialize() {
-
 
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
     const Square Up   = (Us == WHITE ? NORTH : SOUTH);
@@ -280,7 +279,8 @@ namespace {
             kingRing[Us] |= shift<Up>(b);
 
         kingAttackersCount[Them] = popcount(b & pe->pawn_attacks(Them));
-        kingAdjacentZoneAttacksCount[Them] = kingAttackersWeight[Them] = 0;
+        kingAttackersWeight[Them] = kingAttackersCount[Them] * KingAttackWeights[PAWN];
+		kingAdjacentZoneAttacksCount[Them] = 0;
     }
     else
         kingRing[Us] = kingAttackersCount[Them] = 0;
@@ -292,7 +292,6 @@ namespace {
 
   template<Tracing T>  template<Color Us, PieceType Pt>
   Score Evaluation<T>::evaluate_pieces() {
-
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     const Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
@@ -421,11 +420,11 @@ namespace {
 
     const Color Them    = (Us == WHITE ? BLACK : WHITE);
     const Square Up     = (Us == WHITE ? NORTH : SOUTH);
-    const Bitboard Camp = (Us == WHITE ? ~Bitboard(0) ^ Rank6BB ^ Rank7BB ^ Rank8BB
-                                       : ~Bitboard(0) ^ Rank1BB ^ Rank2BB ^ Rank3BB);
+    const Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
+                                       : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
 
     const Square ksq = pos.square<KING>(Us);
-    Bitboard kingOnlyDefended, b, b1, b2, safe, other;
+    Bitboard kingOnlyDefended, undefended, b, b1, b2, safe, other;
     int kingDanger;
 
     // King shelter and enemy pawns storm
@@ -440,8 +439,10 @@ namespace {
                           & ~attackedBy2[Us];
 
         // ... and those which are not defended at all in the larger king ring
-        b =  attackedBy[Them][ALL_PIECES] & ~attackedBy[Us][ALL_PIECES]
-           & kingRing[Us] & ~pos.pieces(Them);
+        undefended =   attackedBy[Them][ALL_PIECES]
+                    & ~attackedBy[Us][ALL_PIECES]
+                    &  kingRing[Us]
+                    & ~pos.pieces(Them);
 
         // Initialize the 'kingDanger' variable, which will be transformed
         // later into a king danger score. The initial value is based on the
@@ -450,8 +451,8 @@ namespace {
         // the quality of the pawn shelter (current 'score' value).
         kingDanger =        kingAttackersCount[Them] * kingAttackersWeight[Them]
                     + 102 * kingAdjacentZoneAttacksCount[Them]
-                    + 201 * popcount(kingOnlyDefended)
-                    + 143 * (popcount(b) + !!pos.pinned_pieces(Us))
+                    + 191 * popcount(kingOnlyDefended | undefended)
+                    + 143 * !!pos.pinned_pieces(Us)
                     - 848 * !pos.count<QUEEN>(Them)
                     -   9 * mg_value(score) / 8
                     +  40;
@@ -603,6 +604,10 @@ namespace {
         if (b)
             score += ThreatByKing[more_than_one(b)];
     }
+	
+	// Bonus for opponent unopposed weak pawns
+	if (pos.pieces(Us, ROOK, QUEEN))
+		score += WeakUnopposedPawn * pe->weak_unopposed(Them);
 
     // Find squares where our pawns can push on the next move
     b  = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();

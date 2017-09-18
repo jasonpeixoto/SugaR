@@ -108,6 +108,7 @@ public:
   void set_hash_file_name(const std::string& fname);
   bool save();
   void load();
+  void load_epd_to_hash();
   std::string hashfilename = "hash.hsh";
 
   // The lowest order bits of the key are used to get the index of the cluster

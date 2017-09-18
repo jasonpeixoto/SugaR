@@ -31,6 +31,10 @@ class Position;
 
 namespace Search {
 
+/// Threshold used for countermoves based pruning
+const int CounterMovePruneThreshold = 0;
+
+
 /// Stack struct keeps track of the information we need to remember from nodes
 /// shallower and deeper in the tree during the search. Each search thread has
 /// its own array of Stack objects, indexed by the current ply.
@@ -87,6 +91,7 @@ struct LimitsType {
 
   std::vector<Move> searchmoves;
   int time[COLOR_NB], inc[COLOR_NB], npmsec, movestogo, depth, movetime, mate, infinite;
+
   int64_t nodes;
   TimePoint startTime;
 };
@@ -98,5 +103,4 @@ void clear();
 template<bool Root = true> uint64_t perft(Position& pos, Depth depth);
 
 } // namespace Search
-
 #endif // #ifndef SEARCH_H_INCLUDED

@@ -23,6 +23,7 @@
 #include <ostream>
 #include <iostream>
 #include <thread>
+
 #include "evaluate.h"
 #include "misc.h"
 #include "search.h"
@@ -44,11 +45,13 @@ void on_eval(const Option&) { Eval::init(); }
 void on_hash_size(const Option& o) { TT.resize(o); }
 void on_large_pages(const Option& o) { TT.resize(o); }  // warning is ok, will be removed
 void on_logger(const Option& o) { start_logger(o); }
-void on_threads(const Option&) { Threads.read_uci_options(); }
+void on_threads(const Option& o) { Threads.set(o); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 void on_HashFile(const Option& o) { TT.set_hash_file_name(o); }
 void SaveHashtoFile(const Option&) { TT.save(); }
 void LoadHashfromFile(const Option&) { TT.load(); }
+void LoadEpdToHash(const Option&) { TT.load_epd_to_hash(); }
+
 void on_brainbook_path(const Option& o) { tzbook.init(o); }
 void on_book_move2_prob(const Option& o) { tzbook.set_book_move2_probability(o); }
 
@@ -66,7 +69,6 @@ void init(OptionsMap& o) {
 
   const int MaxHashMB = Is64Bit ? 1024 * 1024 : 2048;
 
-  
   unsigned int n = std::thread::hardware_concurrency();
   if (!n) n = 1;
   
@@ -97,22 +99,20 @@ void init(OptionsMap& o) {
   o["Space"]                    << Option(100, 0, 500, on_eval);
   o["MultiPV"]                  << Option(1, 1, 500);
   o["Skill Level"]              << Option(20, 0, 20);
-  o["NeverClearHash"]		    << Option(false);
-  o["HashFile"]		            << Option("hash.hsh", on_HashFile);
-  o["SaveHashtoFile"]		    << Option(SaveHashtoFile);
-  o["LoadHashfromFile"]		    << Option(LoadHashfromFile);
+  o["NeverClearHash"]           << Option(false);
+  o["HashFile"]                 << Option("hash.hsh", on_HashFile);
+  o["SaveHashtoFile"]           << Option(SaveHashtoFile);
+  o["LoadHashfromFile"]         << Option(LoadHashfromFile);
+  o["LoadEpdToHash"]            << Option(LoadEpdToHash);
   o["Best Book Move"]           << Option(false);
   o["Book File"]                << Option("NULL");
-  o["Move Overhead"]            << Option(30, 0, 5000);
-  o["Minimum Thinking Time"]    << Option(20, 0, 5000);
-  o["Slow Mover"]               << Option(89, 10, 1000);
+  o["Move Overhead"]            << Option(100, 0, 5000);
   o["nodestime"]                << Option(0, 0, 10000);
   o["UCI_Chess960"]             << Option(false);
   o["SyzygyPath"]               << Option("<empty>", on_tb_path);
   o["SyzygyProbeDepth"]         << Option(1, 1, 100);
   o["Syzygy50MoveRule"]         << Option(true);
   o["SyzygyProbeLimit"]         << Option(6, 0, 6);
-  
   o["Large Pages"]              << Option(true, on_large_pages);
   //Cerebellum Book Library
   o["Cerebellum Library"]       << Option();

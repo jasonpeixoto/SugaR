@@ -19,6 +19,11 @@
 */
 
 #include <iostream>
+#include <utility>
+#include <thread>
+#include <chrono>
+#include <functional>
+#include <atomic>
 
 #include "bitboard.h"
 #include "evaluate.h"
@@ -34,9 +39,13 @@ namespace PSQT {
 }
 
 int main(int argc, char* argv[]) {
-
+	
+	{
+    std::time_t result = std::time(NULL);
+    std::cout << std::asctime(std::localtime(&result));
+}
   std::cout << engine_info() << std::endl;
-
+ 
   UCI::init(Options);
   PSQT::init();
   Bitboards::init();
@@ -47,7 +56,7 @@ int main(int argc, char* argv[]) {
   Pawns::init();
   Tablebases::init(Options["SyzygyPath"]);
   TT.resize(Options["Hash"]);
-  Threads.init();
+  Threads.init(Options["Threads"]);
   Search::clear(); // After threads are up
   tzbook.init(Options["BookPath"]);
   UCI::loop(argc, argv);

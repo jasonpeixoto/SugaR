@@ -73,13 +73,9 @@ namespace {
   const int razor_margin[] = { 0, 570, 603, 554 };
   Value futility_margin(Depth d) { return Value(150 * d / ONE_PLY); }
 
-
   // Futility and reductions lookup tables, initialized at startup
   int FutilityMoveCounts[2][16]; // [improving][depth]
   int Reductions[2][2][64][64];  // [pv][improving][depth][moveNumber]
-
-  // Threshold used for countermoves based pruning
-  const int CounterMovePruneThreshold = 0;
 
   template <bool PvNode> Depth reduction(bool i, Depth d, int mn) {
     return Reductions[PvNode][i][std::min(d / ONE_PLY, 63)][std::min(mn, 63)] * ONE_PLY;
@@ -190,6 +186,7 @@ void Search::init() {
 /// Search::clear() resets search state to its initial value
 
 void Search::clear() {
+
   if (Options["NeverClearHash"])
 	return;
 
@@ -199,16 +196,8 @@ void Search::clear() {
   TT.clear();
 
   for (Thread* th : Threads)
-  {
-      th->counterMoves.fill(MOVE_NONE);
-      th->mainHistory.fill(0);
+      th->clear();
 
-      for (auto& to : th->contHistory)
-          for (auto& h : to)
-              h.fill(0);
-
-      th->contHistory[NO_PIECE][0].fill(CounterMovePruneThreshold - 1);
-  }
 
   Threads.main()->callsCnt = 0;
   Threads.main()->previousScore = VALUE_INFINITE;
@@ -253,13 +242,12 @@ void MainThread::search() {
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
   if (!Limits.infinite)
-  TT.new_search();
+	TT.new_search();
   else
 	TT.infinite_search();
-
   if (rootMoves.empty())
   {
-      rootMoves.push_back(RootMove(MOVE_NONE));
+      rootMoves.emplace_back(MOVE_NONE);
       sync_cout << "info depth 0 score "
                 << UCI::value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW)
                 << sync_endl;
@@ -335,9 +323,10 @@ finalize:
       {
           Depth depthDiff = th->completedDepth - bestThread->completedDepth;
           Value scoreDiff = th->rootMoves[0].score - bestThread->rootMoves[0].score;
-		  int selDepthDiff = th->rootMoves[0].selDepth - bestThread->rootMoves[0].selDepth;
 
-          if (scoreDiff > 0 && (depthDiff >= 0 || depthDiff + selDepthDiff >= -1))
+          // Select the thread with the best score, always if it is a mate
+          if (    scoreDiff > 0
+              && (depthDiff >= 0 || th->rootMoves[0].score >= VALUE_MATE_IN_MAX_PLY))
               bestThread = th;
       }
   }
@@ -377,8 +366,8 @@ void Thread::search() {
   
   bestValue = delta = alpha = -VALUE_INFINITE;
   beta = VALUE_INFINITE;
-  completedDepth = DEPTH_ZERO;
   Color us = rootPos.side_to_move();
+
   if (mainThread)
   {
       easyMove = EasyMove.get(rootPos.key());
@@ -499,15 +488,19 @@ void Thread::search() {
           // Sort the PV lines searched so far and update the GUI
           std::stable_sort(rootMoves.begin(), rootMoves.begin() + PVIdx + 1);
 
-          if (!mainThread)
-              continue;
-
-          if (Threads.stop || PVIdx + 1 == multiPV || Time.elapsed() > 3000)
+          if (    mainThread
+              && (Threads.stop || PVIdx + 1 == multiPV || Time.elapsed() > 3000))
               sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
       }
 
       if (!Threads.stop)
           completedDepth = rootDepth;
+
+      // Have we found a "mate in x"?
+      if (   Limits.mate
+          && bestValue >= VALUE_MATE_IN_MAX_PLY
+          && VALUE_MATE - bestValue <= 2 * Limits.mate)
+          Threads.stop = true;
 
       if (!mainThread)
           continue;
@@ -515,12 +508,6 @@ void Thread::search() {
       // If skill level is enabled and time is up, pick a sub-optimal best move
       if (skill.enabled() && skill.time_to_pick(rootDepth))
           skill.pick_best(multiPV);
-
-      // Have we found a "mate in x"?
-      if (   Limits.mate
-          && bestValue >= VALUE_MATE_IN_MAX_PLY
-          && VALUE_MATE - bestValue <= 2 * Limits.mate)
-          Threads.stop = true;
 
       // Do we have time for the next iteration? Can we stop searching now?
       if (Limits.use_time_management())
@@ -583,7 +570,7 @@ namespace {
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool skipEarlyPruning) {
 
     const bool PvNode = NT == PV;
-    const bool rootNode = PvNode && (ss-1)->ply == 0;
+    const bool rootNode = PvNode && ss->ply == 0;
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -609,24 +596,37 @@ namespace {
     moveCount = quietCount = ss->moveCount = 0;
     ss->statScore = 0;
     bestValue = -VALUE_INFINITE;
-    ss->ply = (ss-1)->ply + 1;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
         static_cast<MainThread*>(thisThread)->check_time();
 
-    // Used to send selDepth info to GUI
-    if (PvNode && thisThread->selDepth < ss->ply)
-        thisThread->selDepth = ss->ply;
+    // Used to send selDepth info to GUI (selDepth counts from 1, ply from 0)
+    if (PvNode && thisThread->selDepth < ss->ply + 1)
+        thisThread->selDepth = ss->ply + 1;
 
-    // Step 2./3. Check for aborted search and immediate draw
-    if (  !rootNode && (Threads.stop.load(std::memory_order_relaxed)
-                        || pos.is_draw(ss->ply) || ss->ply >= MAX_PLY))
-        return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos)
-                                              : DrawValue[pos.side_to_move()];
+    if (!rootNode)
+    {
+        // Step 2. Check for aborted search and immediate draw
+        if (Threads.stop.load(std::memory_order_relaxed) || pos.is_draw(ss->ply) || ss->ply >= MAX_PLY)
+            return ss->ply >= MAX_PLY && !inCheck ? evaluate(pos)
+                                                  : DrawValue[pos.side_to_move()];
+
+        // Step 3. Mate distance pruning. Even if we mate at the next move our score
+        // would be at best mate_in(ss->ply+1), but if alpha is already bigger because
+        // a shorter mate was found upward in the tree then there is no need to search
+        // because we will never beat the current alpha. Same logic but with reversed
+        // signs applies also in the opposite condition of being mated instead of giving
+        // mate. In this case return a fail-high score.
+        alpha = std::max(mated_in(ss->ply), alpha);
+        beta = std::min(mate_in(ss->ply+1), beta);
+        if (alpha >= beta)
+            return alpha;
+    }
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
+    (ss+1)->ply = ss->ply + 1;
     ss->currentMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     ss->contHistory = &thisThread->contHistory[NO_PIECE][0];
     (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
@@ -692,8 +692,8 @@ namespace {
 
                 int drawScore = TB::UseRule50 ? 1 : 0;
 
-                value =  v < -drawScore ? -VALUE_MATE + MAX_PLY + ss->ply
-                       : v >  drawScore ?  VALUE_MATE - MAX_PLY - ss->ply
+                value =  v < -drawScore ? -VALUE_MATE + MAX_PLY + ss->ply + 1
+                       : v >  drawScore ?  VALUE_MATE - MAX_PLY - ss->ply - 1
                                         :  VALUE_DRAW + 2 * v * drawScore;
 
                 tte->save(posKey, value_to_tt(value, ss->ply), BOUND_EXACT,
@@ -996,6 +996,11 @@ moves_loop: // When in check search starts from here
               r -= r ? ONE_PLY : DEPTH_ZERO;
           else
           {
+              // Decrease reduction if opponent's move count is high
+              if ((ss-1)->moveCount > 15)
+                  r -= ONE_PLY;
+
+
               // Increase reduction if ttMove is a capture
               if (ttCapture)
                   r += ONE_PLY;
@@ -1033,6 +1038,7 @@ moves_loop: // When in check search starts from here
 		  if ( ( ss->ply < depth / 2 - ONE_PLY) && Options["Tactical Mode"] )
 		    r = DEPTH_ZERO;
 		
+
           Depth d = std::max(newDepth - r, ONE_PLY);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, false);
@@ -1208,7 +1214,7 @@ moves_loop: // When in check search starts from here
     }
 
     ss->currentMove = bestMove = MOVE_NONE;
-    ss->ply = (ss-1)->ply + 1;
+    (ss+1)->ply = ss->ply + 1;
     moveCount = 0;
 
     // Check for an instant draw or if the maximum ply has been reached
@@ -1223,7 +1229,6 @@ moves_loop: // When in check search starts from here
     // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
     ttDepth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
                                                   : DEPTH_QS_NO_CHECKS;
-
     // Transposition table lookup
     posKey = pos.key();
     tte = TT.probe(posKey, ttHit);
@@ -1282,8 +1287,7 @@ moves_loop: // When in check search starts from here
     // to search the moves. Because the depth is <= 0 here, only captures,
     // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
     // be generated.
-    const PieceToHistory* contHist[4] = {};
-    MovePicker mp(pos, ttMove, depth, &pos.this_thread()->mainHistory, contHist, to_sq((ss-1)->currentMove));
+    MovePicker mp(pos, ttMove, depth, &pos.this_thread()->mainHistory, to_sq((ss-1)->currentMove));
 
     // Loop through the moves until no moves remain or a beta cutoff occurs
     while ((move = mp.next_move()) != MOVE_NONE)
@@ -1531,7 +1535,7 @@ moves_loop: // When in check search starts from here
     if (Threads.ponder)
         return;
 
-    if (   (Limits.use_time_management() && elapsed > Time.maximum() - 10)
+    if (   (Limits.use_time_management() && elapsed > Time.maximum())
         || (Limits.movetime && elapsed >= Limits.movetime)
         || (Limits.nodes && Threads.nodes_searched() >= (uint64_t)Limits.nodes))
             Threads.stop = true;
