@@ -63,10 +63,10 @@ struct Tie: public streambuf { // MSVC requires split streambuf for cin and cout
 
   Tie(streambuf* b, streambuf* l) : buf(b), logBuf(l) {}
 
-  int sync() { return logBuf->pubsync(), buf->pubsync(); }
-  int overflow(int c) { return log(buf->sputc((char)c), "<< "); }
-  int underflow() { return buf->sgetc(); }
-  int uflow() { return log(buf->sbumpc(), ">> "); }
+  int sync() override { return logBuf->pubsync(), buf->pubsync(); }
+  int overflow(int c) override { return log(buf->sputc((char)c), "<< "); }
+  int underflow() override { return buf->sgetc(); }
+  int uflow() override { return log(buf->sbumpc(), ">> "); }
 
   streambuf *buf, *logBuf;
 
@@ -124,7 +124,7 @@ const string engine_info(bool to_uci) {
   string month, day, year;
   stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  ss << "SugaR XPrO 1.2" << Version << setfill('0');
+  ss << "SugaR XPrO 1.3" << Version << setfill('0');
 
 
   if (Version.empty())
