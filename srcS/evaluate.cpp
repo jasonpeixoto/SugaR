@@ -173,22 +173,22 @@ namespace {
 
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is no
   // friendly pawn on the rook file.
-  const Score RookOnFile[] = { S(21, 7), S(46, 21) };
+  const Score RookOnFile[] = { S(20, 7), S(45, 20) };
 
   // ThreatByMinor/ByRook[attacked PieceType] contains bonuses according to
   // which piece type attacks which one. Attacks on lesser pieces which are
   // pawn-defended are not considered.
   const Score ThreatByMinor[PIECE_TYPE_NB] = {
-    S(0, 0), S(0, 33), S(44, 43), S(48, 49), S(73, 102), S(50, 121)
+    S(0, 0), S(0, 33), S(45, 43), S(46, 47), S(72, 107), S(48, 118)
   };
 
   const Score ThreatByRook[PIECE_TYPE_NB] = {
-    S(0, 0), S(1, 24), S(40, 65), S(42, 60), S(-1, 32), S(33, 48)
+    S(0, 0), S(0, 25), S(40, 62), S(40, 59), S(0, 34), S(35, 48)
   };
 
   // ThreatByKing[on one/on many] contains bonuses for king attacks on
   // pawns or pieces which are not pawn-defended.
-  const Score ThreatByKing[] = { S(4, 60), S(9, 139) };
+  const Score ThreatByKing[] = { S(3, 62), S(9, 138) };
 
   // Passed[mg/eg][Rank] contains midgame and endgame bonuses for passed pawns.
   // We don't use a Score because we process the two components independently.
@@ -222,14 +222,13 @@ namespace {
   const Score WeakUnopposedPawn   = S(  5, 25);
   const Score ThreatByPawnPush    = S( 38, 22);
   const Score HinderPassedPawn    = S(  7,  0);
-
   const Score TrappedBishopA1H1   = S( 50, 50);
 
   #undef S
   #undef V
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
-  const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 5, 78, 56, 45, 11 };
+  const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 78, 56, 45, 11 };
 
   // Penalties for enemy's safe checks
   const int QueenCheck  = 780;
@@ -279,8 +278,7 @@ namespace {
             kingRing[Us] |= shift<Up>(b);
 
         kingAttackersCount[Them] = popcount(b & pe->pawn_attacks(Them));
-        kingAttackersWeight[Them] = kingAttackersCount[Them] * KingAttackWeights[PAWN];
-		kingAdjacentZoneAttacksCount[Them] = 0;
+        kingAdjacentZoneAttacksCount[Them] = kingAttackersWeight[Them] = 0;
     }
     else
         kingRing[Us] = kingAttackersCount[Them] = 0;
@@ -604,10 +602,10 @@ namespace {
         if (b)
             score += ThreatByKing[more_than_one(b)];
     }
-	
-	// Bonus for opponent unopposed weak pawns
-	if (pos.pieces(Us, ROOK, QUEEN))
-		score += WeakUnopposedPawn * pe->weak_unopposed(Them);
+
+    // Bonus for opponent unopposed weak pawns
+    if (pos.pieces(Us, ROOK, QUEEN))
+        score += WeakUnopposedPawn * pe->weak_unopposed(Them);
 
     // Find squares where our pawns can push on the next move
     b  = shift<Up>(pos.pieces(Us, PAWN)) & ~pos.pieces();
@@ -771,9 +769,8 @@ namespace {
     bool bothFlanks = (pos.pieces(PAWN) & QueenSide) && (pos.pieces(PAWN) & KingSide);
 
     // Compute the initiative bonus for the attacking side
-    int initiative =    8 * (pe->pawn_asymmetry() + kingDistance - 18) 
-                     + 12 * pos.count<PAWN>()
-                     + 16 * bothFlanks;
+    int initiative = 8 * (pe->pawn_asymmetry() + kingDistance - 17) + 12 * pos.count<PAWN>() + 16 * bothFlanks;
+
 
     // Now apply the bonus: note that we find the attacking side by extracting
     // the sign of the endgame value, and that we carefully cap the bonus so
@@ -849,7 +846,7 @@ namespace {
 
     // Early exit if score is high
     Value v = (mg_value(score) + eg_value(score)) / 2;
-    if (!T && abs(v) > LazyThreshold)
+    if (abs(v) > LazyThreshold)
        return pos.side_to_move() == WHITE ? v : -v;
 
     // Main evaluation begins here
