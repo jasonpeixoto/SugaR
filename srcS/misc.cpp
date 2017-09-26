@@ -133,8 +133,9 @@ const string engine_info(bool to_uci) {
       ss << setw(2) << day << setw(2) << (1 + months.find(month) / 4) << year.substr(2);
   }
 
-  ss << (Is64Bit ? " 64" : " 32")
-     << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
+
+  ss << (Is64Bit ? " x64" : " x32")
+     << (HasPext ? " pext" : (HasPopCnt ? " popcnt" : ""))
 	 << (to_uci ? "" : "\n");
   ss << (to_uci  ? "\nid author ": "by ")
      << "Marco Zerbinati ";
@@ -143,6 +144,7 @@ const string engine_info(bool to_uci) {
  
 	 return ss.str();
 }
+
 /// Debug functions used mainly to collect run-time statistics
 static int64_t hits[2], means[2];
 

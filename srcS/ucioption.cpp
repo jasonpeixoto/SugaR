@@ -100,7 +100,7 @@ void init(OptionsMap& o) {
   o["MultiPV"]                  << Option(1, 1, 500);
   o["Skill Level"]              << Option(20, 0, 20);
   o["NeverClearHash"]           << Option(false);
-  o["HashFile"]                 << Option("hash.hsh", on_HashFile);
+  o["HashFile"]                 << Option("SugaR_hash.hsh", on_HashFile);
   o["SaveHashtoFile"]           << Option(SaveHashtoFile);
   o["LoadHashfromFile"]         << Option(LoadHashfromFile);
   o["LoadEpdToHash"]            << Option(LoadEpdToHash);
@@ -110,14 +110,12 @@ void init(OptionsMap& o) {
   o["nodestime"]                << Option(0, 0, 10000);
   o["UCI_Chess960"]             << Option(false);
   o["SyzygyPath"]               << Option("<empty>", on_tb_path);
-  o["SyzygyProbeDepth"]         << Option(1, 1, 100);
-  o["Syzygy50MoveRule"]         << Option(true);
-  o["SyzygyProbeLimit"]         << Option(6, 0, 6);
+  o["Use Syzygy"]               << Option(true);
   o["Large Pages"]              << Option(true, on_large_pages);
   //Cerebellum Book Library
   o["Cerebellum Library"]       << Option();
   o["Book Move2 Probability"]   << Option(0, 0, 100, on_book_move2_prob);
-  o["BookPath"]                 << Option("<empty>", on_brainbook_path);
+  o["BookPath"]                 << Option("<Cerebellum_Light.bin>", on_brainbook_path);
 }
 /// operator<<() is used to print all the options default values in chronological
 /// insertion order (the idx field) and in the format defined by the UCI protocol.

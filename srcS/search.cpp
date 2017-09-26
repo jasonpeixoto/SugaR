@@ -1023,10 +1023,10 @@ moves_loop: // When in check search starts from here
                              - 4000;
 
               // Decrease/increase reduction by comparing opponent's stat score
-              if (ss->statScore > 0 && (ss-1)->statScore < 0)
+              if (ss->statScore >= 0 && (ss-1)->statScore < 0)
                   r -= ONE_PLY;
 
-              else if (ss->statScore < 0 && (ss-1)->statScore > 0)
+              else if ((ss-1)->statScore >= 0 && ss->statScore < 0)
                   r += ONE_PLY;
 
               // Decrease/increase reduction for moves with a good/bad history
@@ -1629,10 +1629,10 @@ bool RootMove::extract_ponder_from_tt(Position& pos) {
 
 void Tablebases::filter_root_moves(Position& pos, Search::RootMoves& rootMoves) {
 
+    Cardinality = Options["Use Syzygy"] *6;
     RootInTB = false;
-    UseRule50 = Options["Syzygy50MoveRule"];
-    ProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
-    Cardinality = Options["SyzygyProbeLimit"];
+    UseRule50 = true;
+    ProbeDepth = 1 * ONE_PLY;
 
     // Skip TB probing when no TB found: !TBLargest -> !TB::Cardinality
     if (Cardinality > MaxCardinality)
@@ -1666,3 +1666,4 @@ void Tablebases::filter_root_moves(Position& pos, Search::RootMoves& rootMoves) 
                    : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
                                             :  VALUE_DRAW;
 }
+
