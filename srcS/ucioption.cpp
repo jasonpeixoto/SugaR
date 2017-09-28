@@ -115,7 +115,7 @@ void init(OptionsMap& o) {
   //Cerebellum Book Library
   o["Cerebellum Library"]       << Option();
   o["Book Move2 Probability"]   << Option(0, 0, 100, on_book_move2_prob);
-  o["BookPath"]                 << Option("<Cerebellum_Light.bin>", on_brainbook_path);
+  o["BookPath"]                 << Option("Cerebellum_Light.bin", on_brainbook_path);
 }
 /// operator<<() is used to print all the options default values in chronological
 /// insertion order (the idx field) and in the format defined by the UCI protocol.
