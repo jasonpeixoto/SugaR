@@ -109,7 +109,7 @@ public:
   bool save();
   void load();
   void load_epd_to_hash();
-  std::string hashfilename = "hash.hsh";
+  std::string hashfilename = "SugaR_hash.hsh";
 
   // The lowest order bits of the key are used to get the index of the cluster
   TTEntry* first_entry(const Key key) const {
