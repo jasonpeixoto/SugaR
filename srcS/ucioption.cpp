@@ -81,6 +81,7 @@ void init(OptionsMap& o) {
   o["Clear Hash"]               << Option(on_clear_hash);
   o["Clean Search"]             << Option(false);
   o["Ponder"]                   << Option(false);
+  o["NullMove"]                 << Option(true);
   //Add evaluation weights.
   o["Material (Midgame)"]       << Option(100, 0, 500, on_eval);
   o["Material (Endgame)"]       << Option(100, 0, 500, on_eval);

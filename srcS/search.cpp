@@ -137,7 +137,8 @@ namespace {
     Key expectedPosKey;
     Move pv[3];
   };
-
+  
+  bool doNull;
   EasyMoveManager EasyMove;
   bool cleanSearch = Options["Clean Search"];
   Value DrawValue[COLOR_NB];
@@ -245,6 +246,9 @@ void MainThread::search() {
 	TT.new_search();
   else
 	TT.infinite_search();
+
+  doNull = Options["NullMove"];
+
   if (rootMoves.empty())
   {
       rootMoves.emplace_back(MOVE_NONE);
@@ -767,7 +771,8 @@ namespace {
         return eval;
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
-    if (   !PvNode
+    if (    doNull
+	    && !PvNode
         &&  eval >= beta
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
         &&  pos.non_pawn_material(pos.side_to_move()))
