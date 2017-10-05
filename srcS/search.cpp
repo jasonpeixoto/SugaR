@@ -140,7 +140,7 @@ namespace {
   
   bool doNull;
   EasyMoveManager EasyMove;
-  bool cleanSearch = Options["Clean Search"];
+  bool cleanSearch;
   Value DrawValue[COLOR_NB];
 
   template <NodeType NT>
@@ -160,8 +160,10 @@ namespace {
 
 /// Search::init() is called during startup to initialize various lookup tables
 
-void Search::init() {
+void Search::init(bool OptioncleanSearch) {
 
+  cleanSearch = OptioncleanSearch;
+	
   for (int imp = 0; imp <= 1; ++imp)
       for (int d = 1; d < 64; ++d)
           for (int mc = 1; mc < 64; ++mc)
