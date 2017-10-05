@@ -98,7 +98,7 @@ struct LimitsType {
 
 extern LimitsType Limits;
 
-void init();
+void init(bool OptioncleanSearch);
 void clear();
 template<bool Root = true> uint64_t perft(Position& pos, Depth depth);
 
