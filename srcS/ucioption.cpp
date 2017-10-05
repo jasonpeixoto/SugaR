@@ -72,16 +72,14 @@ void init(OptionsMap& o) {
   unsigned int n = std::thread::hardware_concurrency();
   if (!n) n = 1;
   
-  o["Tactical Mode"]            << Option(false);
   o["Debug Log File"]           << Option("", on_logger);
   o["Contempt Factor"]          << Option(0, -100, 100);
-  o["OwnBook"]                  << Option(false);
   o["Threads"]                  << Option(n, 1, 512, on_threads);
   o["Hash"]                     << Option(16, 1, MaxHashMB, on_hash_size);
   o["Clear Hash"]               << Option(on_clear_hash);
   o["Clean Search"]             << Option(false);
   o["Ponder"]                   << Option(false);
-  o["NullMove"]                 << Option(true);
+
   //Add evaluation weights.
   o["Material (Midgame)"]       << Option(100, 0, 500, on_eval);
   o["Material (Endgame)"]       << Option(100, 0, 500, on_eval);
@@ -105,15 +103,24 @@ void init(OptionsMap& o) {
   o["SaveHashtoFile"]           << Option(SaveHashtoFile);
   o["LoadHashfromFile"]         << Option(LoadHashfromFile);
   o["LoadEpdToHash"]            << Option(LoadEpdToHash);
-  o["Best Book Move"]           << Option(false);
-  o["Book File"]                << Option("NULL");
   o["Move Overhead"]            << Option(100, 0, 5000);
   o["nodestime"]                << Option(0, 0, 10000);
   o["UCI_Chess960"]             << Option(false);
   o["SyzygyPath"]               << Option("<empty>", on_tb_path);
   o["Use Syzygy"]               << Option(true);
   o["Large Pages"]              << Option(true, on_large_pages);
-  //Cerebellum Book Library
+  
+  //Corrispondence section
+  o["Corrispondence Chess Analyzer"]     << Option();
+  o["Analysis Mode"]            << Option(false);
+  o["NullMove"]                 << Option(true);
+ 
+ //Polyglot Book management
+  o["Polyglot Book management"] << Option();
+  o["OwnBook"]                  << Option(false);
+  o["Best Book Move"]           << Option(false);
+  o["Book File"]                << Option("book.bin");  //Cerebellum Book Library
+
   o["Cerebellum Library"]       << Option();
   o["Book Move2 Probability"]   << Option(0, 0, 100, on_book_move2_prob);
   o["BookPath"]                 << Option("Cerebellum_Light.bin", on_brainbook_path);

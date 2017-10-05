@@ -103,4 +103,5 @@ void clear();
 template<bool Root = true> uint64_t perft(Position& pos, Depth depth);
 
 } // namespace Search
+
 #endif // #ifndef SEARCH_H_INCLUDED

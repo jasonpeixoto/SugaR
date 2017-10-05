@@ -599,10 +599,8 @@ ScaleFactor Endgame<KQKRPs>::operator()(const Position& pos) const {
   Square weakKingSq = pos.square<KING>(weakSide);
   Square rsq = pos.square<ROOK>(weakSide);
 
-
   if (      pos.pieces(weakSide, PAWN) & FortressMask_KQKRPs[weakSide]
       &&    relative_rank(weakSide, strongKingSq) > relative_rank(weakSide, rsq)
-
       && (  pos.pieces(weakSide, PAWN)
           & pos.attacks_from<KING>(weakKingSq)
           & pos.attacks_from<PAWN>(rsq, strongSide)))

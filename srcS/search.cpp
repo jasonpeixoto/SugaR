@@ -199,7 +199,6 @@ void Search::clear() {
   for (Thread* th : Threads)
       th->clear();
 
-
   Threads.main()->callsCnt = 0;
   Threads.main()->previousScore = VALUE_INFINITE;
 }
@@ -356,7 +355,7 @@ finalize:
 
 void Thread::search() {
 
-  Stack stack[MAX_PLY+7], *ss = stack+4; // To allow referencing (ss-4) and (ss+2)
+  Stack stack[MAX_PLY+7], *ss = stack+4; // To reference from (ss-4) to (ss+2)
   Value bestValue, alpha, beta, delta;
   Move easyMove = MOVE_NONE;
   MainThread* mainThread = (this == Threads.main() ? Threads.main() : nullptr);
@@ -383,7 +382,7 @@ void Thread::search() {
   size_t multiPV = Options["MultiPV"];
   Skill skill(Options["Skill Level"]);
 
-  if (Options["Tactical Mode"]) multiPV=256;
+  if (Options["Analysis Mode"]) multiPV=256;
   
   // When playing with strength handicap enable MultiPV search that we will
   // use behind the scenes to retrieve a set of possible moves.
@@ -772,7 +771,7 @@ namespace {
 
     // Step 8. Null move search with verification search (is omitted in PV nodes)
     if (    doNull
-	    && !PvNode
+        && !PvNode
         &&  eval >= beta
         && (ss->staticEval >= beta - 35 * (depth / ONE_PLY - 6) || depth >= 13 * ONE_PLY)
         &&  pos.non_pawn_material(pos.side_to_move()))
@@ -869,7 +868,7 @@ moves_loop: // When in check search starts from here
                            &&  tte->depth() >= depth - 3 * ONE_PLY;
     skipQuiets = false;
     ttCapture = false;
-	   pvExact = PvNode && ttHit && tte->bound() == BOUND_EXACT;
+    pvExact = PvNode && ttHit && tte->bound() == BOUND_EXACT;
 
     // Step 11. Loop through moves
     // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1014,13 +1013,13 @@ moves_loop: // When in check search starts from here
               if ((ss-1)->moveCount > 15)
                   r -= ONE_PLY;
 
+              // Decrease reduction for exact PV nodes
+              if (pvExact)
+                  r -= ONE_PLY;
 
               // Increase reduction if ttMove is a capture
               if (ttCapture)
                   r += ONE_PLY;
-			  
-			             if (pvExact)
-							     r -= ONE_PLY;
 
               // Increase reduction for cut nodes
               if (cutNode)
@@ -1049,10 +1048,10 @@ moves_loop: // When in check search starts from here
               // Decrease/increase reduction for moves with a good/bad history
               r = std::max(DEPTH_ZERO, (r / ONE_PLY - ss->statScore / 20000) * ONE_PLY);
           }
-          // The "Tactical Mode" option looks SugaR to look at more positions per search depth, but SugaR will play
+          // The "Analysis Mode" option looks SugaR to look at more positions per search depth, but SugaR will play
           // weaker overall.  It also sets the "MultiPV" option to 256 to allow SugaR to look at more nodes per
           // depth and may help in analysis.
-		  if ( ( ss->ply < depth / 2 - ONE_PLY) && Options["Tactical Mode"] )
+		  if ( ( ss->ply < depth / 2 - ONE_PLY) && Options["Analysis Mode"] )
 		    r = DEPTH_ZERO;
 		
 
@@ -1692,4 +1691,3 @@ void Tablebases::filter_root_moves(Position& pos, Search::RootMoves& rootMoves) 
                    : TB::Score < VALUE_DRAW ? -VALUE_MATE + MAX_PLY + 1
                                             :  VALUE_DRAW;
 }
-
