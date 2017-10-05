@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
   Position::init();
   Bitbases::init();
   Eval::init();
-  Search::init();
+  Search::init(Options["Clean Search"]);
   Pawns::init();
   Tablebases::init(Options["SyzygyPath"]);
   TT.resize(Options["Hash"]);
