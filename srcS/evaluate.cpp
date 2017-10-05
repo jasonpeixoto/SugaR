@@ -32,6 +32,15 @@
 
 namespace {
 
+  const Bitboard Center      = (FileDBB | FileEBB) & (Rank4BB | Rank5BB);
+  const Bitboard QueenSide   =  FileABB | FileBBB | FileCBB | FileDBB;
+  const Bitboard CenterFiles =  FileCBB | FileDBB | FileEBB | FileFBB;
+  const Bitboard KingSide    =  FileEBB | FileFBB | FileGBB | FileHBB;
+
+  const Bitboard KingFlank[FILE_NB] = {
+    QueenSide, QueenSide, QueenSide, CenterFiles, CenterFiles, KingSide, KingSide, KingSide
+  };
+
   namespace Trace {
 
     enum Tracing {NO_TRACE, TRACE};
@@ -79,7 +88,7 @@ namespace {
 
   public:
     Evaluation() = delete;
-    Evaluation(const Position& p) : pos(p) {}
+    Evaluation(const Position& p) : pos(p) {};
     Evaluation& operator=(const Evaluation&) = delete;
 
     Value value();
@@ -209,6 +218,7 @@ namespace {
   // Assorted bonuses and penalties used by evaluation
   const Score MinorBehindPawn     = S( 16,  0);
   const Score BishopPawns         = S(  8, 12);
+  const Score LongRangedBishop    = S( 22,  0);
   const Score RookOnPawn          = S(  8, 24);
   const Score TrappedRook         = S( 92,  0);
   const Score WeakQueen           = S( 50, 10);
@@ -347,9 +357,16 @@ namespace {
                 && (pos.pieces(PAWN) & (s + pawn_push(Us))))
                 score += MinorBehindPawn;
 
-            // Penalty for pawns on the same color square as the bishop
             if (Pt == BISHOP)
+            {
+                // Penalty for pawns on the same color square as the bishop
                 score -= BishopPawns * pe->pawns_on_same_color_squares(Us, s);
+
+                // Bonus for bishop on a long diagonal if it can "see" both center squares
+                if (  !(attackedBy[Them][PAWN] & s)
+                    && (more_than_one((attacks_bb<BISHOP>(s, pos.pieces(PAWN)) | s) & Center)))
+                    score += LongRangedBishop;
+            }
 
             // An important Chess960 pattern: A cornered bishop blocked by a friendly
             // pawn diagonally in front of it is a very serious problem, especially
@@ -404,14 +421,6 @@ namespace {
 
 
   // evaluate_king() assigns bonuses and penalties to a king of a given color
-
-  const Bitboard QueenSide   = FileABB | FileBBB | FileCBB | FileDBB;
-  const Bitboard CenterFiles = FileCBB | FileDBB | FileEBB | FileFBB;
-  const Bitboard KingSide    = FileEBB | FileFBB | FileGBB | FileHBB;
-
-  const Bitboard KingFlank[FILE_NB] = {
-    QueenSide, QueenSide, QueenSide, CenterFiles, CenterFiles, KingSide, KingSide, KingSide
-  };
 
   template<Tracing T>  template<Color Us>
   Score Evaluation<T>::evaluate_king() {
@@ -770,7 +779,6 @@ namespace {
 
     // Compute the initiative bonus for the attacking side
     int initiative = 8 * (pe->pawn_asymmetry() + kingDistance - 17) + 12 * pos.count<PAWN>() + 16 * bothFlanks;
-
 
     // Now apply the bonus: note that we find the attacking side by extracting
     // the sign of the endgame value, and that we carefully cap the bonus so

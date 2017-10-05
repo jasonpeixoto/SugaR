@@ -67,6 +67,7 @@ void Thread::clear() {
 }
 
 /// Thread::start_searching() wakes up the thread that will start the search
+
 void Thread::start_searching() {
 
   std::lock_guard<Mutex> lk(mutex);
