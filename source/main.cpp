@@ -42,8 +42,6 @@ namespace PSQT {
   void init();
 }
 
-
-
 int main(int argc, char* argv[]) {
 	
   {
