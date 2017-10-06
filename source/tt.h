@@ -85,8 +85,8 @@ private:
 
 class TranspositionTable {
 
-  static const int CacheLineSize = 64;
-  static const int ClusterSize = 3;
+  static const size_t CacheLineSize = 64;
+  static const size_t ClusterSize = 3;
 
   struct Cluster {
     TTEntry entry[ClusterSize];
@@ -103,7 +103,7 @@ public:
   uint8_t generation() const { return generation8; }
   TTEntry* probe(const Key key, bool& found) const;
   int hashfull() const;
-  void resize(size_t mbSize);
+  void resize(int64_t mbSize);
   void clear();
   void set_hash_file_name(const std::string& fname);
   bool save();
