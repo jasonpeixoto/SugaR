@@ -36,6 +36,7 @@
 #include "syzygy/tbprobe.h"
 #include "tzbook.h"
 
+#include <ctime>
 
 namespace PSQT {
   void init();
@@ -43,12 +44,10 @@ namespace PSQT {
 
 int main(int argc, char* argv[]) {
 	
-	{
-
+  {
     std::time_t result = std::time(NULL);
     std::cout << std::asctime(std::localtime(&result));
-
-}
+  }
 
   std::cout << engine_info() << std::endl;
  

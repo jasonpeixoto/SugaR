@@ -33,6 +33,14 @@ using std::string;
 #include "bitboard.h"
 #include "tt.h"
 
+#ifdef _WIN32
+
+#include <windows.h>
+#undef max
+#undef min
+
+#endif
+
 //https://stackoverflow.com/questions/236129/most-elegant-way-to-split-a-string
 template<typename Out>
 void split(const std::string &s, char delim, Out result) {
