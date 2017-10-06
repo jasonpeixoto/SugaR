@@ -39,14 +39,6 @@
 
 #include <time.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#undef max
-#undef min
-
-#include "VersionHelpers.h"
-#endif
-
 namespace PSQT {
 	void init();
 }
@@ -78,124 +70,10 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
+	std::cout << hardware_info() << std::endl;
+	std::cout << system_info() << std::endl;
 	std::cout << engine_info() << std::endl;
-
-#ifdef _WIN32
-	{
-		SYSTEM_INFO siSysInfo;
-
-		// Copy the hardware information to the SYSTEM_INFO structure. 
-
-		GetSystemInfo(&siSysInfo);
-
-		// Display the contents of the SYSTEM_INFO structure. 
-
-		std::cout << "Hardware information: " << std::endl;
-		std::cout << "  OEM ID: " << siSysInfo.dwOemId << std::endl;
-		std::cout << "  Number of processors: " << siSysInfo.dwNumberOfProcessors << std::endl;
-		std::cout << "  Page size: " << siSysInfo.dwPageSize << std::endl;
-		std::cout << "  Processor type: " << siSysInfo.dwProcessorType << std::endl;
-		std::cout << "  Minimum application address: " << siSysInfo.lpMinimumApplicationAddress << std::endl;
-		std::cout << "  Maximum application address: " << siSysInfo.lpMaximumApplicationAddress << std::endl;
-		std::cout << "  Active processor mask: " << siSysInfo.dwActiveProcessorMask << std::endl;
-
-
-		{
-			InitVersion();
-
-			if (IsWindowsXPOrGreater())
-			{
-				if (IsWindowsXPSP1OrGreater())
-				{
-					if (IsWindowsXPSP2OrGreater())
-					{
-						if (IsWindowsXPSP3OrGreater())
-						{
-							if (IsWindowsVistaOrGreater())
-							{
-								if (IsWindowsVistaSP1OrGreater())
-								{
-									if (IsWindowsVistaSP2OrGreater())
-									{
-										if (IsWindows7OrGreater())
-										{
-											if (IsWindows7SP1OrGreater())
-											{
-												if (IsWindows8OrGreater())
-												{
-													if (IsWindows8Point1OrGreater())
-													{
-														if (IsWindows10OrGreater())
-														{
-															std::cout << "Windows 10 Or Greater" << std::endl;
-														}
-														else
-														{
-															std::cout << "Windows 8 Point 1 Or Greater" << std::endl;
-														}
-													}
-													else
-													{
-														std::cout << "Windows 8 Or Greater" << std::endl;
-													}
-												}
-												else
-												{
-													std::cout << "Windows 7 SP1 Or Greater" << std::endl;
-												}
-											}
-											else
-											{
-												std::cout << "Windows7 Or Greater" << std::endl;
-											}
-										}
-										else
-										{
-											std::cout << "Vista SP2 Or Greater" << std::endl;
-										}
-									}
-									else
-									{
-										std::cout << "Vista SP1O rGreater" << std::endl;
-									}
-								}
-								else
-								{
-									std::cout << "Vista Or Greater" << std::endl;
-								}
-							}
-							else
-							{
-								std::cout << "XP SP3 Or Greater" << std::endl;
-							}
-						}
-						else
-						{
-							std::cout << "XP SP2 Or Greater" << std::endl;
-						}
-					}
-					else
-					{
-						std::cout << "XP SP1 Or Greater" << std::endl;
-					}
-				}
-				else
-				{
-					std::cout << "XP Or Greater" << std::endl;
-				}
-			}
-
-			if (IsWindowsServer())
-			{
-				std::cout << "Server" << std::endl;
-			}
-			else
-			{
-				std::cout << "Client" << std::endl;
-			}
-		}
-	}
-#endif
+	std::cout << cores_info() << std::endl;
 
 	UCI::init(Options);
 	PSQT::init();
