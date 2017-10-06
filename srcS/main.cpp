@@ -36,17 +36,25 @@
 #include "syzygy/tbprobe.h"
 #include "tzbook.h"
 
-#include <ctime>
+#include <time.h>
 
 namespace PSQT {
   void init();
 }
 
+
+
 int main(int argc, char* argv[]) {
 	
   {
-    std::time_t result = std::time(NULL);
-    std::cout << std::asctime(std::localtime(&result));
+	const size_t time_length_const = 100;
+	char time_local[time_length_const];
+	memset(time_local, char(0), time_length_const);
+    time_t result = time(NULL);
+	tm tm_local;
+	errno_t errno_local = localtime_s(&tm_local, &result);
+	errno_local = asctime_s(time_local, time_length_const, &tm_local);
+	std::cout << time_local;
   }
 
   std::cout << engine_info() << std::endl;
