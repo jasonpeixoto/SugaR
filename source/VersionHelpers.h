@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VERSIONHELPER_H_INCLUDED
+#define VERSIONHELPER_H_INCLUDED
 
 #define VERSIONHELPERAPI inline bool
 
@@ -15,7 +16,7 @@
 #define _WIN32_WINNT_WINBLUE        0x0603
 #define _WIN32_WINNT_WIN10          0x0A00        
 
-typedef NTSTATUS(NTAPI* fnRtlGetVersion)(PRTL_OSVERSIONINFOEXW lpVersionInformation);
+typedef LONG(NTAPI *fnRtlGetVersion)(PRTL_OSVERSIONINFOEXW lpVersionInformation);
 
 enum eVerShort
 {
@@ -207,4 +208,4 @@ IsWindowsServer()
 	return !VerifyVersionInfoW(&osvi, VER_PRODUCT_TYPE, dwlConditionMask);
 }
 
-
+#endif

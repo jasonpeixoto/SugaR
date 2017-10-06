@@ -33,6 +33,8 @@ typedef bool(WINAPI *fun1_t)(LOGICAL_PROCESSOR_RELATIONSHIP,
                       PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD);
 typedef bool(WINAPI *fun2_t)(USHORT, PGROUP_AFFINITY);
 typedef bool(WINAPI *fun3_t)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
+
+#include "VersionHelpers.h"
 }
 #endif
 
@@ -116,13 +118,13 @@ public:
 /// the program was compiled) or "Stockfish <Version>", depending on whether
 /// Version is empty.
 
-const string engine_info(bool to_uci) {
-	    unsigned int n = std::thread::hardware_concurrency();
-    std::cout << n << " Threads are supported.\n";
+const std::string engine_info(bool to_uci) {
 
-  const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
-  string month, day, year;
-  stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
+  stringstream ss;
+
+  const std::string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
+  std::string month, day, year;
+  std::stringstream date(__DATE__); // From compiler, format is "Sep 21 2008"
 
   ss << "S_XPrO " << Version << setfill('0');
 
@@ -144,6 +146,185 @@ const string engine_info(bool to_uci) {
  
 	 return ss.str();
 }
+
+const std::string system_info(bool to_uci)
+{
+	std::stringstream result;
+
+#ifdef _WIN32
+	{
+		InitVersion();
+
+		if (IsWindowsXPOrGreater())
+		{
+			if (IsWindowsXPSP1OrGreater())
+			{
+				if (IsWindowsXPSP2OrGreater())
+				{
+					if (IsWindowsXPSP3OrGreater())
+					{
+						if (IsWindowsVistaOrGreater())
+						{
+							if (IsWindowsVistaSP1OrGreater())
+							{
+								if (IsWindowsVistaSP2OrGreater())
+								{
+									if (IsWindows7OrGreater())
+									{
+										if (IsWindows7SP1OrGreater())
+										{
+											if (IsWindows8OrGreater())
+											{
+												if (IsWindows8Point1OrGreater())
+												{
+													if (IsWindows10OrGreater())
+													{
+														result << std::string("Windows 10");
+													}
+													else
+													{
+														result << std::string("Windows 8.1");
+													}
+												}
+												else
+												{
+													result << std::string("Windows 8");
+												}
+											}
+											else
+											{
+												result << std::string("Windows 7 SP1");
+											}
+										}
+										else
+										{
+											result << std::string("Windows 7");
+										}
+									}
+									else
+									{
+										result << std::string("Vista SP2");
+									}
+								}
+								else
+								{
+									result << std::string("Vista SP1");
+								}
+							}
+							else
+							{
+								result << std::string("Vista");
+							}
+						}
+						else
+						{
+							result << std::string("XP SP3");
+						}
+					}
+					else
+					{
+						result << std::string("XP SP2");
+					}
+				}
+				else
+				{
+					result << std::string("XP SP1");
+				}
+			}
+			else
+			{
+				result << std::string("XP");
+			}
+		}
+
+		if (IsWindowsServer())
+		{
+			result << std::string(" Server ");
+		}
+		else
+		{
+			result << std::string(" Client ");
+		}
+
+		result << std::string("Or Greater") << std::endl;
+
+		result << std::endl;
+	}
+#endif
+
+	return result.str();
+}
+
+const std::string hardware_info(bool to_uci)
+{
+	std::stringstream result;
+
+#ifdef _WIN32
+	{
+		SYSTEM_INFO siSysInfo;
+
+		// Copy the hardware information to the SYSTEM_INFO structure. 
+
+		GetSystemInfo(&siSysInfo);
+
+		// Display the contents of the SYSTEM_INFO structure. 
+
+		result << std::endl;
+
+		result << "Hardware information : " << std::endl;
+		result << "  CPU Architecture   : " << siSysInfo.wProcessorArchitecture << std::endl;
+		result << "  CPU Core           : " << siSysInfo.dwNumberOfProcessors << std::endl;
+		result << "  Processor type     : " << siSysInfo.dwProcessorType << std::endl;
+
+		// Use to convert bytes to MB
+		const size_t local_1000_000 = 1000 * 1000;
+
+		MEMORYSTATUSEX statex;
+
+		statex.dwLength = sizeof(statex);
+
+		GlobalMemoryStatusEx(&statex);
+
+		result << "  Total RAM          : " << statex.ullTotalPhys / local_1000_000 << "MB" << std::endl;
+
+		result << std::endl;
+	}
+#endif 
+
+	return result.str();
+}
+
+const std::string cores_info(bool to_uci)
+{
+	std::stringstream result;
+
+#ifdef _WIN32
+	{
+		SYSTEM_INFO siSysInfo;
+
+		// Copy the hardware information to the SYSTEM_INFO structure. 
+
+		GetSystemInfo(&siSysInfo);
+
+		result << std::endl;
+
+		DWORD n = DWORD(std::thread::hardware_concurrency());
+		result << "Test running " << n << " Cores\n";
+
+		DWORD local_mask = siSysInfo.dwActiveProcessorMask;
+
+		for (DWORD core_counter = 0; core_counter<n; core_counter++)
+		{
+			result << "Core " << core_counter << (((core_counter + 1) & local_mask) ? " ready\n" : " not ready\n");
+		}
+
+		result << std::endl;
+	}
+#endif 
+
+	return result.str();
+}
+
 
 /// Debug functions used mainly to collect run-time statistics
 static int64_t hits[2], means[2];
