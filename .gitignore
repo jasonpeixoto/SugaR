@@ -14,3 +14,5 @@
 *.opendb
 *.db
 *.suo
+*.sqlite
+*.json
