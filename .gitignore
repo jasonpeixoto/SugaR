@@ -193,3 +193,7 @@ source/.vs/Galaxy-master/v15/ipch/AutoPCH/GALAXY-MASTER-3e091aa0/BENCHMARK-7ce1e
 source/.vs/Galaxy-master/v15/ipch/AutoPCH/GALAXY-MASTER-3e091aa0/TBPROBE-a70f84a1/TBPROBE.ipch
 source/.vs/Galaxy-master/v15/ipch/AutoPCH/GALAXY-MASTER-3e091aa0/TZBOOK-ca471331/TZBOOK.ipch
 source/Debug/Galaxy-master.Build.CppClean.log
+*.ipch
+.vs/Galaxy-master/v14/.suo
+.vs/Galaxy-master/v15/.suo
+.vs/Galaxy-master/v15/Browse.VC.db
