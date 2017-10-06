@@ -213,8 +213,8 @@ bool TranspositionTable::save() {
 	if (b_stream)
 	{
 		//b_stream.write(reinterpret_cast<char const *>(table), clusterCount * sizeof(Cluster));
-		for (long long i = 0; i < clusterCount * sizeof(Cluster); i += (1 << 30)) { //1GB
-			long long j = __min((1 << 30), (clusterCount * sizeof(Cluster)) - i);
+		for (unsigned long long i = 0; i < clusterCount * sizeof(Cluster); i += (1 << 30)) { //1GB
+			unsigned long long j = __min((1 << 30), (clusterCount * sizeof(Cluster)) - i);
 			b_stream.write(reinterpret_cast<char const *>(table) + i, j);
 		}
 		return (b_stream.good());
@@ -551,7 +551,7 @@ TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
   TTEntry* const tte = first_entry(key);
   const uint16_t key16 = key >> 48;  // Use the high 16 bits as key inside the cluster
 
-  for (int i = 0; i < ClusterSize; ++i)
+  for (size_t i = 0; i < ClusterSize; ++i)
       if (!tte[i].key16 || tte[i].key16 == key16)
       {
           if ((tte[i].genBound8 & 0xFC) != generation8 && tte[i].key16)
@@ -562,7 +562,7 @@ TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
 
   // Find an entry to be replaced according to the replacement strategy
   TTEntry* replace = tte;
-  for (int i = 1; i < ClusterSize; ++i)
+  for (size_t i = 1; i < ClusterSize; ++i)
       // Due to our packed storage format for generation and its cyclic
       // nature we add 259 (256 is the modulus plus 3 to keep the lowest
       // two bound bits from affecting the result) to calculate the entry
@@ -581,10 +581,10 @@ TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
 int TranspositionTable::hashfull() const {
 
   int cnt = 0;
-  for (int i = 0; i < 1000 / ClusterSize; i++)
+  for (size_t i = 0; i < 1000 / ClusterSize; i++)
   {
       const TTEntry* tte = &table[i].entry[0];
-      for (int j = 0; j < ClusterSize; j++)
+      for (size_t j = 0; j < ClusterSize; j++)
           if ((tte[j].genBound8 & 0xFC) == generation8)
               cnt++;
   }
