@@ -140,5 +140,8 @@
     <ClInclude Include="syzygy\tbprobe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VersionHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
