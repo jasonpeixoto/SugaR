@@ -117,7 +117,7 @@ void Try_Get_LockMemory_Privileges()
 /// measured in megabytes. Transposition table consists of a power of 2 number
 /// of clusters and each cluster consists of ClusterSize number of TTEntry.
 
-void TranspositionTable::resize(size_t mbSize) {
+void TranspositionTable::resize(int64_t mbSize) {
 
   if (mbSize == 0)
       mbSize = mbSize_last_used;
@@ -150,7 +150,7 @@ void TranspositionTable::resize(size_t mbSize) {
           else          
               free(mem);
       }
-      uint64_t memsize = clusterCount * sizeof(Cluster) + CacheLineSize - 1;
+      size_t memsize = clusterCount * sizeof(Cluster) + CacheLineSize - 1;
       mem = calloc(memsize, 1);
       large_pages_used = false;
   }
@@ -164,7 +164,7 @@ void TranspositionTable::resize(size_t mbSize) {
               free(mem);
       }
 
-      int64_t memsize = clusterCount * sizeof(Cluster);
+      size_t memsize = clusterCount * sizeof(Cluster);
       mem = VirtualAlloc(NULL, memsize, MEM_LARGE_PAGES | MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
       if (mem == NULL)
       {
