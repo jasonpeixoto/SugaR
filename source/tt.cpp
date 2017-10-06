@@ -150,6 +150,7 @@ void TranspositionTable::resize(int64_t mbSize) {
           else          
               free(mem);
       }
+
       size_t memsize = clusterCount * sizeof(Cluster) + CacheLineSize - 1;
       mem = calloc(memsize, 1);
       large_pages_used = false;
