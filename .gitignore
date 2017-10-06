@@ -11,6 +11,6 @@
 *.ilk
 *.idb
 *.ipch
-*юopendb
+*.opendb
 *.db
 *.suo
