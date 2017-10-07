@@ -137,12 +137,9 @@ const std::string engine_info(bool to_uci) {
 
 
   ss << (Is64Bit ? " x64" : " x32")
-     << (HasPext ? " pext" : (HasPopCnt ? " popcnt" : ""))
-	 << (to_uci ? "" : "\n");
-  ss << (to_uci  ? "\nid author ": "by ")
-     << "Marco Zerbinati ";
-  ss << (to_uci ? "" : "(c) 2017\n")
-	 << (to_uci ? "" : "Free UCI chess playing engine derived from Stockfish\n");
+     << (HasPext ? " BMI2" : (HasPopCnt ? " POPCNT" : ""))
+     << (to_uci  ? "\nid author ": " by ")
+     << "Marco Zerbinati, Sergey Aleksandrovitch Kozlov";
  
 	 return ss.str();
 }
