@@ -110,8 +110,8 @@ void init(OptionsMap& o) {
   o["Use Syzygy"]               << Option(true);
   o["Large Pages"]              << Option(true, on_large_pages);
   
-  //Corrispondence section
-  o["Corrispondence Chess Analyzer"]     << Option();
+  //Correspondence section
+  o["Correspondence Chess Analyzer"]     << Option();
   o["Analysis Mode"]            << Option(false);
   o["NullMove"]                 << Option(true);
  
