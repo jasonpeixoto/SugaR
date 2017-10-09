@@ -144,10 +144,8 @@ const std::string engine_info(bool to_uci) {
 	 return ss.str();
 }
 
-const std::string system_info(bool to_uci)
+const std::string system_info()
 {
-	UNREFERENCED_PARAMETER(to_uci);
-
 	std::stringstream result;
 
 #ifdef _WIN32
@@ -254,10 +252,8 @@ const std::string system_info(bool to_uci)
 	return result.str();
 }
 
-const std::string hardware_info(bool to_uci)
+const std::string hardware_info()
 {
-	UNREFERENCED_PARAMETER(to_uci);
-
 	std::stringstream result;
 
 #ifdef _WIN32
@@ -295,10 +291,8 @@ const std::string hardware_info(bool to_uci)
 	return result.str();
 }
 
-const std::string cores_info(bool to_uci)
+const std::string cores_info()
 {
-	UNREFERENCED_PARAMETER(to_uci);
-
 	std::stringstream result;
 
 #ifdef _WIN32
