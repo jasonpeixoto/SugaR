@@ -46,6 +46,7 @@ namespace PSQT {
 int main(int argc, char* argv[]) {
 
 	{
+#ifdef _WIN32
 		const size_t time_length_const = 100;
 		char time_local[time_length_const];
 		memset(time_local, char(0), time_length_const);
@@ -68,6 +69,10 @@ int main(int argc, char* argv[]) {
 		{
 			assert(errno_local != 0);
 		}
+#elif
+		std::time_t result = std::time(NULL);
+		std::cout << std::asctime(std::localtime(&result));
+#endif
 	}
 
 	std::cout << hardware_info() << std::endl;
