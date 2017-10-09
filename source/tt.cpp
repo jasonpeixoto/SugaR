@@ -214,7 +214,9 @@ bool TranspositionTable::save() {
 	{
 		//b_stream.write(reinterpret_cast<char const *>(table), clusterCount * sizeof(Cluster));
 		for (unsigned long long i = 0; i < clusterCount * sizeof(Cluster); i += (1 << 30)) { //1GB
+#ifndef __min
         #define __min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
 		    unsigned long long j = __min((1 << 30), (clusterCount * sizeof(Cluster)) - i);
 			b_stream.write(reinterpret_cast<char const *>(table) + i, j);
 		}
