@@ -47,12 +47,17 @@ void TZBook::init(const std::string& path)
     if (strcmp(p, "<empty>") == 0)
         return;
 
+#ifdef _WIN32
 	FILE *fpt;
 	errno_t errno_local = fopen_s(&fpt, p, "rb");
     if (fpt == NULL || errno_local != 0)
     {
 		assert(errno_local != 0);
-
+#else
+	FILE *fpt = fopen(p, "rb");
+	if (fpt == NULL)
+	{
+#endif
 		sync_cout << "info string Could not open " << path << sync_endl;
         return;
     }

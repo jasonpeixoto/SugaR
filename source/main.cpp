@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 		{
 			assert(errno_local != 0);
 		}
-#elif
+#else
 		std::time_t result = std::time(NULL);
 		std::cout << std::asctime(std::localtime(&result));
 #endif
