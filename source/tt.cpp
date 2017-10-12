@@ -60,9 +60,11 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 TranspositionTable TT; // Our global transposition table
 int use_large_pages = -1;
+#ifdef _WIN32
 int got_privileges = -1;
+#endif
 
-
+#ifdef _WIN32
 bool Get_LockMemory_Privileges()
 {
     HANDLE TH, PROC7;
@@ -111,7 +113,7 @@ void Try_Get_LockMemory_Privileges()
 
     use_large_pages = 1;        
 }
-
+#endif
 
 /// TranspositionTable::resize() sets the size of the transposition table,
 /// measured in megabytes. Transposition table consists of a power of 2 number
@@ -127,7 +129,9 @@ void TranspositionTable::resize(int64_t mbSize) {
 
   mbSize_last_used = mbSize;
 
+#ifdef _WIN32
   Try_Get_LockMemory_Privileges();
+#endif
 
   size_t newClusterCount = size_t(1) << msb((mbSize * 1024 * 1024) / sizeof(Cluster));
 
