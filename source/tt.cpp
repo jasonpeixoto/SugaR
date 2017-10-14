@@ -59,8 +59,8 @@ std::vector<std::string> split(const std::string &s, char delim) {
 }
 
 TranspositionTable TT; // Our global transposition table
-int use_large_pages = -1;
 #ifdef _WIN32
+int use_large_pages = -1;
 int got_privileges = -1;
 #endif
 
@@ -137,28 +137,37 @@ void TranspositionTable::resize(int64_t mbSize) {
 
   if (newClusterCount == clusterCount)
   {
+#ifdef _WIN32
       if ((use_large_pages == 1) && (large_pages_used))      
           return;
       if ((use_large_pages == 0) && (large_pages_used == false))
+#endif
           return;
   }
 
   clusterCount = newClusterCount;
  
+#ifdef _WIN32
   if (use_large_pages < 1)
+#endif
   {
       if (mem != NULL)
       {
+#ifdef _WIN32
           if (large_pages_used)
               VirtualFree(mem, 0, MEM_RELEASE);
-          else          
+          else
+#endif
               free(mem);
       }
 
       size_t memsize = clusterCount * sizeof(Cluster) + CacheLineSize - 1;
       mem = calloc(memsize, 1);
+#ifdef _WIN32
       large_pages_used = false;
+#endif
   }
+#ifdef _WIN32
   else
   {
       if (mem != NULL)
@@ -188,6 +197,7 @@ void TranspositionTable::resize(int64_t mbSize) {
       }
         
   }
+#endif
 
   if (!mem)
   {
