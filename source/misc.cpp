@@ -274,7 +274,7 @@ const std::string hardware_info()
 
 		LONG result_registry_functions = ERROR_SUCCESS;
 
-		result_registry_functions = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("Hardware\\Description\\System\\CentralProcessor\\0\\"), NULL, KEY_READ, &hKey);
+		result_registry_functions = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("Hardware\\Description\\System\\CentralProcessor\\0\\"), 0, KEY_READ, &hKey);
 
 		if (result_registry_functions == ERROR_SUCCESS)
 		{
