@@ -192,7 +192,7 @@ void TranspositionTable::resize(int64_t mbSize) {
       }
       else
       {
-          sync_cout << "info string LargePages " << (memsize >> 20) << " Mb" << sync_endl;
+          sync_cout << "info string LargePages " << (memsize >> 20) << " MiB" << sync_endl;
           large_pages_used = true;
       }
         
@@ -202,7 +202,7 @@ void TranspositionTable::resize(int64_t mbSize) {
   if (!mem)
   {
       std::cerr << "Failed to allocate " << mbSize
-                << "MB for transposition table." << std::endl;
+                << "MiB for transposition table." << std::endl;
       exit(EXIT_FAILURE);
   }
 
