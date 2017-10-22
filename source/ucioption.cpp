@@ -123,8 +123,9 @@ void init(OptionsMap& o) {
   o["Polyglot Book management"] << Option();
   o["OwnBook"]                  << Option(false);
   o["Best Book Move"]           << Option(false);
-  o["Book File"]                << Option("book.bin");  //Cerebellum Book Library
+  o["Book File"]                << Option("book.bin");
 
+  //Cerebellum Book Library
   o["Cerebellum Library"]       << Option();
   o["Book Move2 Probability"]   << Option(0, 0, 100, on_book_move2_prob);
   o["BookPath"]                 << Option("Cerebellum_Light.bin", on_brainbook_path);
