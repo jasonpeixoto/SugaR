@@ -788,8 +788,10 @@ namespace {
         Trace::add(INITIATIVE, make_score(0, v));
 
     return make_score(0, v);
-  // evaluate_scale_factor() computes the scale factor for the winning side
+  }
 
+
+  // evaluate_scale_factor() computes the scale factor for the winning side
   template<Tracing T>
   ScaleFactor Evaluation<T>::evaluate_scale_factor(Value eg) {
 
