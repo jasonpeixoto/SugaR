@@ -98,7 +98,47 @@ namespace {
     Move best = MOVE_NONE;
   };
 
+  // EasyMoveManager structure is used to detect an 'easy move'. When the PV is stable
+  // across multiple search iterations, we can quickly return the best move.
+  struct EasyMoveManager {
+
+    void clear() {
+      stableCnt = 0;
+      expectedPosKey = 0;
+      pv[0] = pv[1] = pv[2] = MOVE_NONE;
+    }
+
+    Move get(Key key) const {
+      return expectedPosKey == key ? pv[2] : MOVE_NONE;
+    }
+
+    void update(Position& pos, const std::vector<Move>& newPv) {
+
+      assert(newPv.size() >= 3);
+
+      // Keep track of how many times in a row the 3rd ply remains stable
+      stableCnt = (newPv[2] == pv[2]) ? stableCnt + 1 : 0;
+
+      if (!std::equal(newPv.begin(), newPv.begin() + 3, pv))
+      {
+          std::copy(newPv.begin(), newPv.begin() + 3, pv);
+
+          StateInfo st[2];
+          pos.do_move(newPv[0], st[0]);
+          pos.do_move(newPv[1], st[1]);
+          expectedPosKey = pos.key();
+          pos.undo_move(newPv[1]);
+          pos.undo_move(newPv[0]);
+      }
+    }
+
+    int stableCnt;
+    Key expectedPosKey;
+    Move pv[3];
+  };
+  
   bool doNull;
+  EasyMoveManager EasyMove;
   bool cleanSearch;
   Value DrawValue[COLOR_NB];
 
@@ -162,7 +202,6 @@ void Search::clear() {
 
   Threads.main()->callsCnt = 0;
   Threads.main()->previousScore = VALUE_INFINITE;
-  Threads.main()->previousTimeReduction = 1;
 }
 
 
@@ -278,7 +317,8 @@ finalize:
 
   // Check if there are threads with a better score than main thread
   Thread* bestThread = this;
-  if (    Options["MultiPV"] == 1
+  if (   !this->easyMovePlayed
+      &&  Options["MultiPV"] == 1
       && !Limits.depth
       && !Skill(Options["Skill Level"]).enabled()
       &&  rootMoves[0].pv[0] != MOVE_NONE)
@@ -318,10 +358,8 @@ void Thread::search() {
 
   Stack stack[MAX_PLY+7], *ss = stack+4; // To reference from (ss-4) to (ss+2)
   Value bestValue, alpha, beta, delta;
-  Move  lastBestMove = MOVE_NONE;
-  Depth lastBestMoveDepth = DEPTH_ZERO;
+  Move easyMove = MOVE_NONE;
   MainThread* mainThread = (this == Threads.main() ? Threads.main() : nullptr);
-  double timeReduction = 1.0;
 
   std::memset(ss-4, 0, 7 * sizeof(Stack));
   for (int i = 4; i > 0; i--)
@@ -336,7 +374,9 @@ void Thread::search() {
 
   if (mainThread)
   {
-      mainThread->failedLow = false;
+      easyMove = EasyMove.get(rootPos.key());
+      EasyMove.clear();
+      mainThread->easyMovePlayed = mainThread->failedLow = false;
       mainThread->bestMoveChanges = 0;
   }
 
@@ -460,11 +500,6 @@ void Thread::search() {
       if (!Threads.stop)
           completedDepth = rootDepth;
 
-      if (rootMoves[0].pv[0] != lastBestMove) {
-         lastBestMove = rootMoves[0].pv[0];
-         lastBestMoveDepth = rootDepth;
-      }
-
       // Have we found a "mate in x"?
       if (   Limits.mate
           && bestValue >= VALUE_MATE_IN_MAX_PLY
@@ -484,21 +519,21 @@ void Thread::search() {
           if (!Threads.stop && !Threads.stopOnPonderhit)
           {
               // Stop the search if only one legal move is available, or if all
-              // of the available time has been used
+              // of the available time has been used, or if we matched an easyMove
+              // from the previous search and just did a fast verification.
               const int F[] = { mainThread->failedLow,
                                 bestValue - mainThread->previousScore };
 
               int improvingFactor = std::max(229, std::min(715, 357 + 119 * F[0] - 6 * F[1]));
               double unstablePvFactor = 1 + mainThread->bestMoveChanges;
 
-              timeReduction = 1;
-              for (int i : {3, 4, 5})
-                  if (lastBestMoveDepth * i < completedDepth)
-                     timeReduction *= 1.3;
-              unstablePvFactor /=  timeReduction / std::pow(mainThread->previousTimeReduction, 0.51);
+              bool doEasyMove =   rootMoves[0].pv[0] == easyMove
+                               && mainThread->bestMoveChanges < 0.03
+                               && Time.elapsed() > Time.optimum() * 5 / 44;
 
               if (   rootMoves.size() == 1
-                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 628)
+                  || Time.elapsed() > Time.optimum() * unstablePvFactor * improvingFactor / 628
+                  || (mainThread->easyMovePlayed = doEasyMove, doEasyMove))
               {
                   // If we are allowed to ponder do not stop the search now but
                   // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -508,13 +543,21 @@ void Thread::search() {
                       Threads.stop = true;
               }
           }
+
+          if (rootMoves[0].pv.size() >= 3)
+              EasyMove.update(rootPos, rootMoves[0].pv);
+          else
+              EasyMove.clear();
       }
   }
 
   if (!mainThread)
       return;
 
-  mainThread->previousTimeReduction = timeReduction;
+  // Clear any candidate easy move that wasn't stable for the last search
+  // iterations; the second condition prevents consecutive fast moves.
+  if (EasyMove.stableCnt < 6 || mainThread->easyMovePlayed)
+      EasyMove.clear();
 
   // If skill level is enabled, swap best PV line with the sub-optimal one
   if (skill.enabled())
@@ -1623,10 +1666,6 @@ void Tablebases::filter_root_moves(Position& pos, Search::RootMoves& rootMoves) 
     UseRule50 = Options["Syzygy50MoveRule"];
     ProbeDepth = Options["SyzygyProbeDepth"] * ONE_PLY;
     Cardinality = Options["SyzygyProbeLimit"];
-
-    // Don't filter any moves if the user requested analysis on multiple
-    if (Options["MultiPV"] != 1)
-        return;
 
     // Skip TB probing when no TB found: !TBLargest -> !TB::Cardinality
     if (Cardinality > MaxCardinality)
