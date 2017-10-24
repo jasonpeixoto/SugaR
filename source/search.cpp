@@ -153,6 +153,7 @@ namespace {
   void update_pv(Move* pv, Move move, Move* childPv);
   void update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus);
   void update_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, int bonus);
+  bool PVisDraw(Position& pos);
 
 } // namespace
 
@@ -200,6 +201,7 @@ void Search::clear() {
   for (Thread* th : Threads)
       th->clear();
 
+
   Threads.main()->callsCnt = 0;
   Threads.main()->previousScore = VALUE_INFINITE;
 }
@@ -240,6 +242,7 @@ template uint64_t Search::perft<true>(Position&, Depth);
 void MainThread::search() {
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
+
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
   if (!Limits.infinite)
@@ -248,7 +251,10 @@ void MainThread::search() {
 	TT.infinite_search();
 
   doNull = Options["NullMove"];
-
+  
+  int contempt = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
+  DrawValue[ us] = VALUE_DRAW - Value(contempt);
+  DrawValue[~us] = VALUE_DRAW + Value(contempt);
   if (rootMoves.empty())
   {
       rootMoves.emplace_back(MOVE_NONE);
@@ -370,7 +376,6 @@ void Thread::search() {
   
   bestValue = delta = alpha = -VALUE_INFINITE;
   beta = VALUE_INFINITE;
-  Color us = rootPos.side_to_move();
 
   if (mainThread)
   {
@@ -391,9 +396,6 @@ void Thread::search() {
       multiPV = std::max(multiPV, (size_t)4);
 
   multiPV = std::min(multiPV, rootMoves.size());
-
-
-  int contempt = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
 
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   (rootDepth += ONE_PLY) < DEPTH_MAX
@@ -429,7 +431,6 @@ void Thread::search() {
               delta = Value(18);
               alpha = std::max(rootMoves[PVIdx].previousScore - delta,-VALUE_INFINITE);
               beta  = std::min(rootMoves[PVIdx].previousScore + delta, VALUE_INFINITE);
-			  contempt = Options["Contempt Factor"] * PawnValueEg / 100;
           }
 
           // Start with a small aspiration window and, in the case of a fail
@@ -438,11 +439,6 @@ void Thread::search() {
           while (true)
           {
               bestValue = ::search<PV>(rootPos, ss, alpha, beta, rootDepth, false, false);
-              
-              contempt += bestValue <= alpha && bestValue < VALUE_DRAW ? -int(delta / 4 + 5) 
-                        : bestValue >= beta  && bestValue > VALUE_DRAW ?  int(delta / 4 + 5) : 0;
-              DrawValue[ us] = VALUE_DRAW - Value(contempt);
-              DrawValue[~us] = VALUE_DRAW + Value(contempt);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -523,11 +519,17 @@ void Thread::search() {
               // from the previous search and just did a fast verification.
               const int F[] = { mainThread->failedLow,
                                 bestValue - mainThread->previousScore };
-
               int improvingFactor = std::max(229, std::min(715, 357 + 119 * F[0] - 6 * F[1]));
-              double unstablePvFactor = 1 + mainThread->bestMoveChanges;
+
+              Color us = rootPos.side_to_move();
+              bool thinkHard =    DrawValue[us] == bestValue
+                               && Limits.time[us] - Time.elapsed() > Limits.time[~us]
+                               && ::PVisDraw(rootPos);
+
+              double unstablePvFactor = (thinkHard ? 2 : 1) + mainThread->bestMoveChanges;
 
               bool doEasyMove =   rootMoves[0].pv[0] == easyMove
+                               && !thinkHard
                                && mainThread->bestMoveChanges < 0.03
                                && Time.elapsed() > Time.optimum() * 5 / 44;
 
@@ -568,8 +570,23 @@ void Thread::search() {
 
 namespace {
 
-  // search<>() is the main search function for both PV and non-PV nodes
+  // is the PV leading to a draw position ?
+  bool PVisDraw(Position& pos) {
+    auto& pv = pos.this_thread()->rootMoves[0].pv;
+    StateInfo st[MAX_PLY];
 
+    for (size_t i = 0; i < pv.size(); i++)
+        pos.do_move(pv[i], st[i]);
+
+    bool isDraw = pos.is_draw(pv.size());
+
+    for (size_t i = pv.size(); i > 0; i--)
+        pos.undo_move(pv[i-1]);
+
+    return isDraw;
+  }
+
+  // search<>() is the main search function for both PV and non-PV nodes
   template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool skipEarlyPruning) {
 
