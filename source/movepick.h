@@ -22,6 +22,7 @@
 #define MOVEPICK_H_INCLUDED
 
 #include <array>
+#include <limits>
 
 #include "movegen.h"
 #include "position.h"
