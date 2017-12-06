@@ -79,6 +79,10 @@ void init(OptionsMap& o) {
   o["Clear Hash"]               << Option(on_clear_hash);
   o["Clean Search"]             << Option(false);
   o["Ponder"]                   << Option(false);
+  o["UCI_Limit_Strength"]       << Option(false);
+  o["UCI_Elo_Delay"]            << Option(false);
+  o["UCI_Elo"]                  << Option(1200, 800, 2800);
+
 
   //Add evaluation weights.
   o["Material (Midgame)"]       << Option(100, 0, 500, on_eval);
@@ -113,6 +117,7 @@ void init(OptionsMap& o) {
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(6, 0, 6);
   o["Large Pages"]              << Option(true, on_large_pages);
+  
   
   //Correspondence section
   o["Correspondence Chess Analyzer"]     << Option();

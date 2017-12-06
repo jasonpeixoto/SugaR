@@ -230,12 +230,28 @@ void MainThread::search() {
   DrawValue[ us] = VALUE_DRAW - score_to_value(Contempt[us], rootPos);
   DrawValue[~us] = VALUE_DRAW + score_to_value(Contempt[us], rootPos);
 
-  if (rootMoves.empty())
-  {
-      rootMoves.emplace_back(MOVE_NONE);
-      sync_cout << "info depth 0 score "
-                << UCI::value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW)
-                << sync_endl;
+	if (Options["UCI_Limit_Strength"])
+	{
+		
+		int uci_elo = (Options["UCI_Elo"]);
+ 	int lower_elo = uci_elo - 75;
+		int upper_elo = uci_elo + 75;
+		
+		int use_rating = rand() % (upper_elo - lower_elo +1 ) + lower_elo;
+		int NodesToSearch   = pow(1.0069555500567,(((use_rating)/1200) -1 )
+								  + (use_rating - 1200)) * 64 ;
+		Limits.nodes = NodesToSearch;
+		
+		if (Options["UCI_Elo_Delay"])
+		std::this_thread::sleep_for (std::chrono::seconds(Time.optimum()/1000));
+	}
+	
+	if (rootMoves.empty())
+	{
+		rootMoves.push_back(RootMove(MOVE_NONE));
+		sync_cout << "info depth 0 score "
+		<< UCI::value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW)
+		<< sync_endl;
   }
   else
   {
